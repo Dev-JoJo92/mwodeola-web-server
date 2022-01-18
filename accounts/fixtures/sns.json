@@ -1,0 +1,58 @@
+[
+  {
+    "model": "accounts.sns",
+    "fields": {
+      "id": 1,
+      "name": "Naver"
+    }
+  },
+  {
+    "model": "accounts.sns",
+    "fields": {
+      "id": 2,
+      "name": "카카오"
+    }
+  },
+  {
+    "model": "accounts.sns",
+    "fields": {
+      "id": 3,
+      "name": "LINE"
+    }
+  },
+  {
+    "model": "accounts.sns",
+    "fields": {
+      "id": 4,
+      "name": "Google"
+    }
+  },
+  {
+    "model": "accounts.sns",
+    "fields": {
+      "id": 5,
+      "name": "Facebook"
+    }
+  },
+  {
+    "model": "accounts.sns",
+    "fields": {
+      "id": 6,
+      "name": "Instagram"
+    }
+  },
+  {
+    "model": "accounts.sns",
+    "fields": {
+      "id": 7,
+      "name": "Twitter"
+    }
+  },
+  {
+    "model": "accounts.sns",
+    "fields": {
+      "id": 8,
+      "name": "Apple"
+    }
+  }
+]
