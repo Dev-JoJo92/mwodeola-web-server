@@ -3,6 +3,7 @@ from django.http import HttpResponse, JsonResponse
 from rest_framework import generics, status
 from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.settings import api_settings
 
 from .serializers import SignUpSerializer
 from mwodeola_tokens.serializers import TokenObtainPairSerializer, TokenBlacklistSerializer
@@ -44,6 +45,17 @@ class SignInView(SignBaseView):
 
 class SignOutView(SignBaseView):
     serializer_class = TokenBlacklistSerializer
+
+
+# 회원 탈퇴
+class WithdrawalView(SignBaseView):
+    serializer_class = TokenBlacklistSerializer
+
+    def post(self, request, *args, **kwargs):
+        authorization = request.META.get(api_settings.AUTH_HEADER_NAME)
+        token_str = authorization[len('Bearer '):]
+        token =
+        return super().post(request, *args, **kwargs)
 
 
 sign_up = SignUpView.as_view()
