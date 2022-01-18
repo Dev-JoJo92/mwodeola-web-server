@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.db import IntegrityError
 from django.http import HttpResponse, JsonResponse
 from rest_framework import generics, status
 from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
@@ -31,7 +32,7 @@ class SignBaseView(generics.GenericAPIView):
 
         try:
             serializer.is_valid(raise_exception=True)
-        except TokenError as e:
+        except (TokenError, IntegrityError) as e:
             raise InvalidToken(e.args[0])
 
         return JsonResponse(serializer.validated_data, status=status.HTTP_200_OK)
