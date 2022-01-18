@@ -4,9 +4,11 @@ from rest_framework import generics, status
 from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.settings import api_settings
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import SignUpSerializer
 from mwodeola_tokens.serializers import TokenObtainPairSerializer, TokenBlacklistSerializer
+from mwodeola_users.models import MwodeolaUser
 
 
 # Create your views here.
@@ -48,16 +50,20 @@ class SignOutView(SignBaseView):
 
 
 # 회원 탈퇴
+# 추후 탈퇴 정책 꼭 보완하기.
 class WithdrawalView(SignBaseView):
     serializer_class = TokenBlacklistSerializer
 
     def post(self, request, *args, **kwargs):
         authorization = request.META.get(api_settings.AUTH_HEADER_NAME)
         token_str = authorization[len('Bearer '):]
-        token =
+        token = RefreshToken(token_str)
+        user_id = token.payload['user_id']
+        MwodeolaUser.objects.get('user_id').delete()
         return super().post(request, *args, **kwargs)
 
 
 sign_up = SignUpView.as_view()
 sign_in = SignInView.as_view()
 sign_out = SignOutView.as_view()
+withdrawal = WithdrawalView.as_view()
