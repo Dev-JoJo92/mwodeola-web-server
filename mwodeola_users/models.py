@@ -38,7 +38,10 @@ class MwodeolaUser(AbstractBaseUser, PermissionsMixin):
     objects = MwodeolaUserManager()
 
     def __str__(self):
-        return self.email
+        if self.is_superuser:
+            return f'[Admin] {self.user_name}({self.phone_number})'
+        else:
+            return f'{self.user_name}({self.phone_number})'
 
     class Meta:
         db_table = "mwodeola_user"

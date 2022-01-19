@@ -15,6 +15,9 @@ class SNS(models.Model):
     id = models.SmallIntegerField(primary_key=True, null=False, blank=False)
     name = models.CharField(max_length=20, null=False, blank=False)
 
+    def __str__(self):
+        return f'({self.id}){self.name}'
+
 
 # AccountGroup
 class AccountGroup(models.Model):
@@ -32,6 +35,12 @@ class AccountGroup(models.Model):
     is_favorite = models.BooleanField(null=False, blank=False, default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        if self.sns is None:
+            return self.group_name
+        else:
+            return f'[SNS] {self.group_name}'
 
     class Meta:
         constraints = [
@@ -61,6 +70,9 @@ class AccountDetail(models.Model):
     last_confirmed_at = models.DateTimeField(auto_now=True)
     views = models.IntegerField(default=0)
 
+    def __str__(self):
+        return self.user_id
+
 
 # Account
 class Account(models.Model):
@@ -70,6 +82,9 @@ class Account(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.own_group}: {self.detail}'
 
     class Meta:
         constraints = [
