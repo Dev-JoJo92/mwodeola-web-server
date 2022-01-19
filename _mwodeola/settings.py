@@ -46,6 +46,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     "52.79.191.108",
+    "172.31.47.248",
     ".ap-northeast-2.compute.amazonaws.com",
     ".mwodeola.shop",  # 가비아에서 대여한 도메인 네임
 ]
