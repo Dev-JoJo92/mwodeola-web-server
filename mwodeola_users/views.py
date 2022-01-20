@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from django.db import IntegrityError
 from django.http import HttpResponse, JsonResponse
-from rest_framework import generics, status
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import generics, status, exceptions
 from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.settings import api_settings
@@ -53,15 +54,23 @@ class SignOutView(SignBaseView):
 # 회원 탈퇴
 # 추후 탈퇴 정책 꼭 보완하기.
 class WithdrawalView(SignBaseView):
-    serializer_class = TokenBlacklistSerializer
 
-    def post(self, request, *args, **kwargs):
+    def delete(self, request):
         authorization = request.META.get(api_settings.AUTH_HEADER_NAME)
         token_str = authorization[len('Bearer '):]
-        token = RefreshToken(token_str)
-        user_id = token.payload['user_id']
-        MwodeolaUser.objects.get('user_id').delete()
-        return super().post(request, *args, **kwargs)
+
+        try:
+            token = RefreshToken(token_str)
+            user_id = token.payload['user_id']
+        except TokenError as e:
+            raise InvalidToken(e.args[0])
+
+        try:
+            MwodeolaUser.objects.get(id=user_id).delete()
+        except ObjectDoesNotExist as e:
+            raise exceptions.ValidationError(e)
+
+        return HttpResponse(status=status.HTTP_200_OK)
 
 
 sign_up = SignUpView.as_view()
