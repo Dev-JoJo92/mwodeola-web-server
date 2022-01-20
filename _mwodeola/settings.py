@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'mwodeola_tokens.apps.MwodeolaTokensConfig',
     'mwodeola_users.apps.MwodeolaUsersConfig',
     'accounts.apps.AccountsConfig',
+    'tests.apps.TestsConfig',
 ]
 
 REST_FRAMEWORK = {

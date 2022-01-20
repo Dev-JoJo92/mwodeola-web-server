@@ -21,4 +21,5 @@ urlpatterns = [
     path('', include('mwodeola_tokens.urls')),
     path('', include('mwodeola_users.urls')),
     path('', include('accounts.urls')),
+    path('', include('tests.urls')),
 ]
