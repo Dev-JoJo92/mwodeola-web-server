@@ -12,6 +12,7 @@ class AccountGroupAdmin(admin.ModelAdmin):
                     'created_at')
     list_filter = ['created_at']
     search_fields = ['group_name']
+    readonly_fields = ('id',)
 
 
 class AccountDetailAdmin(admin.ModelAdmin):
@@ -19,11 +20,13 @@ class AccountDetailAdmin(admin.ModelAdmin):
                     'user_password', 'user_password_pin', 'user_password_pattern',
                     'memo', 'views')
     search_fields = ['group']
+    readonly_fields = ('id',)
 
 
 class AccountAdmin(admin.ModelAdmin):
     list_display = ('own_group', 'sns_group', 'detail')
     search_fields = ['own_group']
+    readonly_fields = ('id',)
 
 
 # Register your models here.
