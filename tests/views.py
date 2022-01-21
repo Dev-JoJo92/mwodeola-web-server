@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 class TestView(APIView):
     def get(self, request):
         meta = request.META
+        request.headers
         ip_address = meta.get('REMOTE_ADDR', None)
         response = {
             'ip_address': ip_address,

@@ -5,6 +5,9 @@ from . import serializers
 from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
 
 class TokenViewBase(generics.GenericAPIView):
     permission_classes = ()

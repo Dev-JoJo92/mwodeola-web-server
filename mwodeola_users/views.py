@@ -2,13 +2,18 @@ from django.shortcuts import render
 from django.db import IntegrityError
 from django.http import HttpResponse, JsonResponse
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth import authenticate, get_user_model
+from django.utils.translation import gettext_lazy as _
 from rest_framework import generics, status, exceptions
+from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTTokenUserAuthentication
 
 from .serializers import SignUpSerializer
+from .authentications import JWTAuthenticationForRefresh
 from mwodeola_tokens.serializers import TokenObtainPairSerializer, TokenBlacklistSerializer
 from mwodeola_users.models import MwodeolaUser
 
@@ -73,7 +78,44 @@ class WithdrawalView(SignBaseView):
         return HttpResponse(status=status.HTTP_200_OK)
 
 
+class AuthenticateView(APIView):
+    authentication_classes = (JWTAuthenticationForRefresh, )
+
+    def post(self, request):
+        try:
+            authorization = request.META.get(api_settings.AUTH_HEADER_NAME)
+            token_value = authorization[len('Bearer '):]
+            token = RefreshToken(token_value)
+            user_id = token.payload['user_id']
+        except TokenError as e:
+            raise InvalidToken(e.args[0])
+
+        try:
+            phone_number = MwodeolaUser.objects.get(id=user_id).phone_number
+        except ObjectDoesNotExist as e:
+            raise exceptions.ValidationError(e.args[0])
+
+        try:
+            password = request.data['password']
+        except KeyError as e:
+            raise exceptions.ParseError(e.args[0])
+
+        user = authenticate(
+            request,
+            phone_number=phone_number,
+            password=password
+        )
+
+        if not api_settings.USER_AUTHENTICATION_RULE(user):
+            raise exceptions.AuthenticationFailed(
+                _('No active account found with the given credentials')
+            )
+
+        return HttpResponse(status=status.HTTP_200_OK)
+
+
 sign_up = SignUpView.as_view()
 sign_in = SignInView.as_view()
 sign_out = SignOutView.as_view()
 withdrawal = WithdrawalView.as_view()
+authenticate_view = AuthenticateView.as_view()
