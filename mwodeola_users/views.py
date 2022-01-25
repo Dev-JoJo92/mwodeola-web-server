@@ -68,10 +68,6 @@ class BaseSignView(APIView):
 class SignUpVerifyView(BaseSignView):
     def get(self, request):
         self.serializer = SignUpVerifySerializer(data=request.data)
-        random_key_32 = get_random_secret_key_str()
-        random_key_50 = get_random_secret_key_str(50)
-        print(f'random_key_32={random_key_32}')
-        print(f'random_key_50={random_key_50}')
         return super().get(request)
 
 
