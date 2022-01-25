@@ -28,8 +28,8 @@ class TokenObtainSerializer(serializers.Serializer):
 
     default_error_messages = {
         'no_active_account': _('No active account found with the given credentials'),
-        'not_matched_phone_number': _('Not matched Phone Number.'),
-        'not_matched_password': _('Not matched Password.'),
+        'not_members': _('Not members.'),
+        'incorrect_password': _('Incorrect Password.'),
     }
 
     def __init__(self, *args, **kwargs):
@@ -40,16 +40,20 @@ class TokenObtainSerializer(serializers.Serializer):
         self.fields['password'] = PasswordField()
 
     def validate(self, attrs):
+        username_value = attrs[self.username_field]
+
+        is_exists = get_user_model().objects.filter(phone_number=username_value).exists()
+        if not is_exists:
+            raise exceptions.NotFound(self.error_messages['not_members'], 'not_members')
+
         authenticate_kwargs = {
-            self.username_field: attrs[self.username_field],
+            self.username_field: username_value,
             'password': attrs['password'],
         }
         try:
             authenticate_kwargs['request'] = self.context['request']
         except KeyError:
             pass
-
-        # print(f'TokenObtainSerializer.validate(): authenticate_kwargs={authenticate_kwargs}')
 
         self.user = authenticate(**authenticate_kwargs)
 

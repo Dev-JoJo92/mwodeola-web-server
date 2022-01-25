@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers, status
 from .models import AccountGroup, AccountDetail, Account, SNS
 from mwodeola_users.models import MwodeolaUser
 from _mwodeola.cipher import AESCipher
@@ -8,6 +8,23 @@ from rest_framework.fields import empty
 CIPHER = AESCipher()
 
 
+class BaseModelSerializer(serializers.ModelSerializer):
+
+    def __init__(self, instance=None, data=empty, **kwargs):
+        super().__init__(instance, data, **kwargs)
+        self.results = {}
+        self.err_messages = {}
+        self.err_status = status.HTTP_400_BAD_REQUEST
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            self.err_messages = self.errors
+            return False
+        else:
+            # self.results = self.data
+            return True
+
+
 class SnsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SNS
@@ -15,28 +32,28 @@ class SnsSerializer(serializers.ModelSerializer):
 
 
 # [AccountGroup] Serializer
-class AccountGroupSerializerForRead(serializers.ModelSerializer):
+class AccountGroupSerializerForRead(BaseModelSerializer):
     class Meta:
         model = AccountGroup
         exclude = ['mwodeola_user']
 
 
 # [AccountGroup] Serializer
-class AccountGroupSerializerForCreate(serializers.ModelSerializer):
+class AccountGroupSerializerForCreate(BaseModelSerializer):
     class Meta:
         model = AccountGroup
         fields = '__all__'
 
 
 # [AccountGroup] Serializer
-class AccountGroupSerializerForUpdate(serializers.ModelSerializer):
+class AccountGroupSerializerForUpdate(BaseModelSerializer):
     class Meta:
         model = AccountGroup
-        exclude = ['sns']
+        exclude = ['sns', 'icon_image_url']
 
 
 # [AccountDetail] Serializer
-class AccountDetailSerializerForRead(serializers.ModelSerializer):
+class AccountDetailSerializerForRead(BaseModelSerializer):
     class Meta:
         model = AccountDetail
         fields = '__all__'
@@ -55,7 +72,7 @@ class AccountDetailSerializerForRead(serializers.ModelSerializer):
 
 
 # [AccountDetail] Serializer
-class AccountDetailSerializerForCreate(serializers.ModelSerializer):
+class AccountDetailSerializerForCreate(BaseModelSerializer):
     class Meta:
         model = AccountDetail
         fields = '__all__'
@@ -84,7 +101,7 @@ class AccountDetailSerializerForCreate(serializers.ModelSerializer):
 
 
 # [AccountDetail] Serializer
-class AccountDetailSerializerForUpdate(serializers.ModelSerializer):
+class AccountDetailSerializerForUpdate(BaseModelSerializer):
     class Meta:
         model = AccountDetail
         exclude = ['group']
@@ -108,8 +125,41 @@ class AccountDetailSerializerForUpdate(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+# [AccountDetail] Serializer
+class AccountDetailSerializerSimple(BaseModelSerializer):
+    is_sns_group = serializers.SerializerMethodField()
+    group_icon_type = serializers.SerializerMethodField()
+    group_package_name = serializers.SerializerMethodField()
+    group_icon_image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AccountDetail
+        fields = [
+            'id',
+            'user_id',
+            'is_sns_group',
+            'group_icon_type',
+            'group_package_name',
+            'group_icon_image_url',
+        ]
+
+    def get_is_sns_group(self, obj):
+        return obj.group.sns is not None
+
+    def get_group_icon_type(self, obj):
+        return obj.group.icon_type
+
+    def get_group_package_name(self, obj):
+        # return 'package'
+        return obj.group.app_package_name
+
+    def get_group_icon_image_url(self, obj):
+        # return 'url'
+        return obj.group.icon_image_url
+
+
 # [Account] Serializer
-class AccountSerializerForRead(serializers.ModelSerializer):
+class AccountSerializerForRead(BaseModelSerializer):
     class Meta:
         model = Account
         fields = '__all__'

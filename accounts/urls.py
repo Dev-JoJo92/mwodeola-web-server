@@ -3,23 +3,32 @@ from . import views
 
 urlpatterns = [
 
-    # GET(조회): (1) all
-    # POST(생성): (1) with detail
-    # PUT(수정): (1) with detail, (2) alone
-    # DELETE(삭제)
-    path('accounts/groups', views.AccountGroupView.as_view()),
-    path('accounts/groups/favorite', views.AccountGroupFavoriteView.as_view()),
-    path('accounts/groups/add/sns_detail', views.AccountGroupAddSnsDetailView.as_view()),  # POST
+    # GET: all
+    # PUT: update only group
+    # DELETE: delete group
+    path('account/group', views.AccountGroupView.as_view()),
 
-    # GET(조회): in group
-    # POST(생성): add in group
-    # PUT(수정): (1) with group, (2) alone
-    # DELETE(삭제)
-    path('accounts/details', views.AccountDetailView.as_view()),
+    # PUT: update favorite
+    path('account/group/favorite', views.AccountGroupFavoriteView.as_view()),
 
+    # GET: group and detail
+    # POST: create new group and new detail
+    # PUT: update group and detail
+    path('account/group/detail', views.AccountGroupDetailView.as_view()),
 
-    path('accounts/search', views.AccountSearchView.as_view()),
+    # GET: all details in group
+    path('account/group/detail/all', views.AccountGroupDetailAllView.as_view()),
 
-    # Test
-    path('accounts/test', views.TestView.as_view()),
+    # POST: add sns_detail in group
+    # DELETE: disconnect sns_detail
+    path('account/group/sns_detail', views.AccountGroupSnsDetailView.as_view()),
+
+    # POST: add new detail in group
+    # DELETE: delete detail
+    path('account/detail', views.AccountDetailView.as_view()),
+
+    # GET: account/search/group?group_name=
+    path('account/search/group', views.AccountSearchGroupView.as_view()),
+    # GET: account/search/group?user_id=
+    path('account/search/detail', views.AccountSearchDetailView.as_view()),
 ]

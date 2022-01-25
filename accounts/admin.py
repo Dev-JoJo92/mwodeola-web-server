@@ -13,20 +13,29 @@ class AccountGroupAdmin(admin.ModelAdmin):
     list_filter = ['created_at']
     search_fields = ['group_name']
     readonly_fields = ('id',)
+    ordering = ('created_at',)
 
 
 class AccountDetailAdmin(admin.ModelAdmin):
-    list_display = ('group', 'user_id',
+    list_display = ('mwodeola_user', 'group', 'user_id',
                     'user_password', 'user_password_pin', 'user_password_pattern',
                     'memo', 'views')
     search_fields = ['group']
     readonly_fields = ('id',)
+    ordering = ('created_at',)
+
+    def mwodeola_user(self, obj):
+        return obj.group.mwodeola_user
 
 
 class AccountAdmin(admin.ModelAdmin):
-    list_display = ('own_group', 'sns_group', 'detail')
+    list_display = ('user', 'own_group', 'sns_group', 'detail')
     search_fields = ['own_group']
-    readonly_fields = ('id',)
+    readonly_fields = ('id', 'own_group', 'sns_group', 'detail')
+    ordering = ('created_at',)
+
+    def user(self, obj):
+        return obj.own_group.mwodeola_user
 
 
 # Register your models here.

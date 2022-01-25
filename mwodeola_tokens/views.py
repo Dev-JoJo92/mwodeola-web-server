@@ -1,12 +1,10 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 
-from . import serializers
 from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from . import serializers
 
 
 class TokenViewBase(generics.GenericAPIView):

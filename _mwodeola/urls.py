@@ -18,6 +18,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', include('mwodeola_admin.urls')),
     path('', include('mwodeola_tokens.urls')),
     path('', include('mwodeola_users.urls')),
     path('', include('accounts.urls')),

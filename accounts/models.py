@@ -20,6 +20,9 @@ class SNS(models.Model):
 
 
 # AccountGroup
+# TODO: SNS 그룹을 만들때는 사용자가 아닌,
+# TODO: group_name, app_package_name, web_url(디폴트추가), icon_type, icon_image_url 를 서버에서 지정하기
+# TODO: 안드로이드 앱의 AutofillService 를 위해 앱 실행시 마다 패키지명 업데이트 프로세싱 고안하기.
 class AccountGroup(models.Model):
     mwodeola_user = models.ForeignKey(MwodeolaUser, on_delete=models.CASCADE, related_name='mwodeola_user',
                                       null=False, blank=False)

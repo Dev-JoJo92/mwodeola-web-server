@@ -1,29 +1,33 @@
-from django.shortcuts import render
-from django.db import IntegrityError
 from django.http import HttpResponse, JsonResponse
-from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth import authenticate, get_user_model
-from django.utils.translation import gettext_lazy as _
-from rest_framework import generics, status, exceptions
+from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework.settings import api_settings
 from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from rest_framework_simplejwt.settings import api_settings
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.authentication import JWTTokenUserAuthentication
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
-from .serializers import SignUpSerializer
-from .authentications import JWTAuthenticationForRefresh
-from mwodeola_tokens.serializers import TokenObtainPairSerializer, TokenBlacklistSerializer
+from _mwodeola.utils import get_random_secret_key_str
 from mwodeola_users.models import MwodeolaUser
+from .auth import get_raw_token, get_user_from_request_token
+from .auth.authentications import JWTAuthenticationForRefresh
+from .serializers_token import TokenRefreshSerializer
+from .serializers import (
+    SignUpVerifySerializer,
+    SignUpSerializer,
+    SignInSerializer,
+    AutoSignInSerializer,
+    SignOutSerializer,
+    WithdrawalSerializer,
+    PasswordAuthSerializer,
+    PasswordChangeSerializer,
+)
 
 
 # Create your views here.
-class SignBaseView(generics.GenericAPIView):
+class BaseSignView(APIView):
     permission_classes = []
     authentication_classes = []
 
-    serializer_class = None
+    serializer = None
 
     www_authenticate_realm = 'api'
 
@@ -33,89 +37,130 @@ class SignBaseView(generics.GenericAPIView):
             self.www_authenticate_realm,
         )
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+    def get(self, request):
+        return self.response(request)
 
-        try:
-            serializer.is_valid(raise_exception=True)
-        except (TokenError, IntegrityError) as e:
-            raise InvalidToken(e.args[0])
+    def post(self, request):
+        return self.response(request)
 
-        return JsonResponse(serializer.validated_data, status=status.HTTP_200_OK)
+    def put(self, request):
+        return self.response(request)
+
+    def delete(self, request):
+        return self.response(request)
+
+    def response(self, request):
+        if self.serializer is None:
+            return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+        serializer = self.serializer
+
+        if serializer.is_valid():
+            if request.method == 'POST' or request.method == 'PUT':
+                serializer.save()
+            if request.method == 'DELETE':
+                serializer.delete()
+            return JsonResponse(serializer.results, status=status.HTTP_200_OK)
+        else:
+            return JsonResponse(serializer.err_messages, status=serializer.err_status)
 
 
-class SignUpView(SignBaseView):
-    serializer_class = SignUpSerializer
+class SignUpVerifyView(BaseSignView):
+    def get(self, request):
+        self.serializer = SignUpVerifySerializer(data=request.data)
+        random_key_32 = get_random_secret_key_str()
+        random_key_50 = get_random_secret_key_str(50)
+        print(f'random_key_32={random_key_32}')
+        print(f'random_key_50={random_key_50}')
+        return super().get(request)
 
 
-class SignInView(SignBaseView):
-    serializer_class = TokenObtainPairSerializer
+class SignUpView(BaseSignView):
+    def post(self, request):
+        self.serializer = SignUpSerializer(data=request.data)
+        return super().post(request)
 
 
-class SignOutView(SignBaseView):
-    serializer_class = TokenBlacklistSerializer
+#  TODO: Refresh 토큰이 아직 살아있는데 로그인 시도할 경우
+#  TODO: 유저 phone_number 로 문자 발송 구현 예정.
+class SignInView(BaseSignView):
+    def post(self, request):
+        self.serializer = SignInSerializer(data=request.data)
+        return super().post(request)
+
+
+class AutoSignInView(BaseSignView):
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    authentication_classes = [JWTAuthenticationForRefresh]
+
+    def get(self, request):
+        user = get_user_from_request_token(request)
+        refresh_token = get_raw_token(request)
+        self.serializer = AutoSignInSerializer(user=user, refresh_token=refresh_token)
+        return super().get(request)
+
+
+class SignOutView(BaseSignView):
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    authentication_classes = [JWTAuthenticationForRefresh]
+
+    def put(self, request):
+        raw_token = get_raw_token(request)
+        data = {'refresh': raw_token}
+        self.serializer = SignOutSerializer(data=data)
+        return super().put(request)
 
 
 # 회원 탈퇴
-# 추후 탈퇴 정책 꼭 보완하기.
-class WithdrawalView(SignBaseView):
+# 토큰(refresh) & 휴대폰 번호 & 비밀번호 인증 후 삭제.
+# 추후 탈퇴 정책 만들기(7일 보관 등)
+class WithdrawalView(BaseSignView):
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    authentication_classes = [JWTAuthenticationForRefresh]
 
     def delete(self, request):
-        authorization = request.META.get(api_settings.AUTH_HEADER_NAME)
-        token_str = authorization[len('Bearer '):]
-
-        try:
-            token = RefreshToken(token_str)
-            user_id = token.payload['user_id']
-        except TokenError as e:
-            raise InvalidToken(e.args[0])
-
-        try:
-            MwodeolaUser.objects.get(id=user_id).delete()
-        except ObjectDoesNotExist as e:
-            raise exceptions.ValidationError(e)
-
-        return HttpResponse(status=status.HTTP_200_OK)
+        user = get_user_from_request_token(request)
+        self.serializer = WithdrawalSerializer(user, data=request.data)
+        return super().delete(request)
 
 
-class AuthenticateView(APIView):
-    authentication_classes = (JWTAuthenticationForRefresh, )
+class PasswordAuthView(BaseSignView):
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    authentication_classes = [JWTAuthenticationForRefresh]
 
-    def post(self, request):
-        try:
-            authorization = request.META.get(api_settings.AUTH_HEADER_NAME)
-            token_value = authorization[len('Bearer '):]
-            token = RefreshToken(token_value)
-            user_id = token.payload['user_id']
-        except TokenError as e:
-            raise InvalidToken(e.args[0])
-
-        try:
-            phone_number = MwodeolaUser.objects.get(id=user_id).phone_number
-        except ObjectDoesNotExist as e:
-            raise exceptions.ValidationError(e.args[0])
-
-        try:
-            password = request.data['password']
-        except KeyError as e:
-            raise exceptions.ParseError(e.args[0])
-
-        user = authenticate(
-            request,
-            phone_number=phone_number,
-            password=password
-        )
-
-        if not api_settings.USER_AUTHENTICATION_RULE(user):
-            raise exceptions.AuthenticationFailed(
-                _('No active account found with the given credentials')
-            )
-
-        return HttpResponse(status=status.HTTP_200_OK)
+    def get(self, request):
+        user = get_user_from_request_token(request)
+        self.serializer = PasswordAuthSerializer(user, data=request.data)
+        return super().get(request)
 
 
+class PasswordChangeView(BaseSignView):
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    authentication_classes = [JWTAuthenticationForRefresh]
+
+    def put(self, request):
+        user = get_user_from_request_token(request)
+        self.serializer = PasswordChangeSerializer(user, data=request.data)
+        return super().put(request)
+
+
+class TokenRefreshView(BaseSignView):
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    authentication_classes = [JWTAuthenticationForRefresh]
+
+    def get(self, request):
+        raw_token = get_raw_token(request)
+        data = {'refresh': raw_token}
+        self.serializer = TokenRefreshSerializer(data=data)
+        return super().get(request)
+
+
+sign_up_verify = SignUpVerifyView.as_view()
 sign_up = SignUpView.as_view()
 sign_in = SignInView.as_view()
+auto_sign_in = AutoSignInView.as_view()
 sign_out = SignOutView.as_view()
 withdrawal = WithdrawalView.as_view()
-authenticate_view = AuthenticateView.as_view()
+password_auth = PasswordAuthView.as_view()
+password_change = PasswordChangeView.as_view()
+token_refresh = TokenRefreshView.as_view()
