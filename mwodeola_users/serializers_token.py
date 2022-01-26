@@ -97,7 +97,7 @@ class TokenObtainPairSerializer(UserAuthMixin, BaseTokenSerializer):
             if not is_blacklist:
                 RefreshToken(latest_token_queryset.token).blacklist()
 
-        except ObjectDoesNotExist:
+        except (ObjectDoesNotExist, TokenError):
             pass
 
 

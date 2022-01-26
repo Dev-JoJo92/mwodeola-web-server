@@ -3,56 +3,45 @@
     "model": "accounts.sns",
     "fields": {
       "id": 1,
-      "name": "Naver"
+      "name": "Naver",
+      "app_package_name": "com.nhn.android.search",
+      "web_url": "https://www.naver.com/"
     }
   },
   {
     "model": "accounts.sns",
     "fields": {
       "id": 2,
-      "name": "카카오"
+      "name": "카카오",
+      "app_package_name": "com.kakao.talk",
+      "web_url": "https://www.kakaocorp.com/"
     }
   },
   {
     "model": "accounts.sns",
     "fields": {
       "id": 3,
-      "name": "LINE"
+      "name": "LINE",
+      "app_package_name": "jp.naver.line.android",
+      "web_url": "https://line.me/"
     }
   },
   {
     "model": "accounts.sns",
     "fields": {
       "id": 4,
-      "name": "Google"
+      "name": "Google",
+      "app_package_name": "com.google.android.googlequicksearchbox",
+      "web_url": "https://www.google.com/"
     }
   },
   {
     "model": "accounts.sns",
     "fields": {
       "id": 5,
-      "name": "Facebook"
-    }
-  },
-  {
-    "model": "accounts.sns",
-    "fields": {
-      "id": 6,
-      "name": "Instagram"
-    }
-  },
-  {
-    "model": "accounts.sns",
-    "fields": {
-      "id": 7,
-      "name": "Twitter"
-    }
-  },
-  {
-    "model": "accounts.sns",
-    "fields": {
-      "id": 8,
-      "name": "Apple"
+      "name": "Facebook",
+      "app_package_name": "com.facebook.katana",
+      "web_url": "https://www.facebook.com/"
     }
   }
 ]

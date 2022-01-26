@@ -7,6 +7,7 @@ ICON_TYPE = [
     (0, 'TEXT'),
     (1, 'IMAGE'),
     (2, 'INSTALLED_APP_LOGO'),
+    (3, 'SNS'),
 ]
 
 
@@ -14,14 +15,14 @@ ICON_TYPE = [
 class SNS(models.Model):
     id = models.SmallIntegerField(primary_key=True, null=False, blank=False)
     name = models.CharField(max_length=20, null=False, blank=False)
+    app_package_name = models.CharField(max_length=100)
+    web_url = models.URLField(max_length=100)
 
     def __str__(self):
         return f'({self.id}){self.name}'
 
 
 # AccountGroup
-# TODO: SNS 그룹을 만들때는 사용자가 아닌,
-# TODO: group_name, app_package_name, web_url(디폴트추가), icon_type, icon_image_url 를 서버에서 지정하기
 # TODO: 안드로이드 앱의 AutofillService 를 위해 앱 실행시 마다 패키지명 업데이트 프로세싱 고안하기.
 class AccountGroup(models.Model):
     mwodeola_user = models.ForeignKey(MwodeolaUser, on_delete=models.CASCADE, related_name='mwodeola_user',
@@ -32,9 +33,9 @@ class AccountGroup(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     group_name = models.CharField(max_length=30, null=False, blank=False)
     app_package_name = models.CharField(max_length=100, null=True, blank=False, default=None)
-    web_url = models.CharField(max_length=500, null=True, blank=False, default=None)
+    web_url = models.URLField(max_length=100, null=True, blank=False, default=None)
     icon_type = models.SmallIntegerField(choices=ICON_TYPE, default=0)
-    icon_image_url = models.URLField(null=True, default=None)
+    icon_image_url = models.URLField(max_length=500, null=True, default=None)
     is_favorite = models.BooleanField(null=False, blank=False, default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)

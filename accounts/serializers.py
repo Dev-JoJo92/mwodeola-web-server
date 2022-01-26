@@ -11,9 +11,7 @@ from .serializers_base import (
     AccountGroupSerializerForRead,
     AccountGroupSerializerForCreate,
     AccountGroupSerializerForUpdate,
-    AccountDetailSerializerForRead,
-    AccountDetailSerializerForCreate,
-    AccountDetailSerializerForUpdate,
+    AccountDetailSerializer,
     AccountDetailSerializerSimple,
     AccountSerializerForRead,
 )
@@ -32,12 +30,12 @@ class BaseSerializer(serializers.Serializer):
         super().__init__(instance, data, **kwargs)
 
     def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            self.err_messages = self.errors
+            return False
         if self.user is None:
             self.err_messages['error'] = 'Server Error (500)'
             self.err_status = status.HTTP_500_INTERNAL_SERVER_ERROR
-            return False
-        if not super().is_valid(raise_exception):
-            self.err_messages = self.errors
             return False
         return True
 
@@ -154,7 +152,7 @@ class AccountGroupDetail_GET_Serializer(BaseSerializer):
         account_detail.save()
 
         group_serializer = AccountGroupSerializerForRead(account_detail.group)
-        detail_serializer = AccountDetailSerializerForRead(account_detail)
+        detail_serializer = AccountDetailSerializer(account_detail)
 
         self.results['account_group'] = group_serializer.data
         self.results['detail'] = detail_serializer.data
@@ -167,14 +165,14 @@ class AccountGroupDetail_POST_Serializer(BaseNestedSerializer):
         account_group_data = data['account_group']
         account_detail_data = data['detail']
 
-        self.account_group_serializer = AccountGroupSerializerForCreate(data=account_group_data)
-        self.account_detail_serializer = AccountDetailSerializerForCreate(data=account_detail_data)
+        self.account_group_serializer = AccountGroupSerializerForCreate(user=user, data=account_group_data)
+        self.account_detail_serializer = AccountDetailSerializer(data=account_detail_data)
 
     def save(self):
         try:
             new_group = self.account_group_serializer.save()
         except IntegrityError as e:
-            raise exceptions.ValidationError(e)
+            raise exceptions.ValidationError(e.args[0])
 
         self.account_detail_serializer.save(group=new_group)
         self.results['account_group'] = self.account_group_serializer.data
@@ -201,7 +199,7 @@ class AccountGroupDetail_PUT_Serializer(BaseNestedSerializer):
 
         self.account_group_serializer = AccountGroupSerializerForUpdate(
             qs_account_group, data=account_group_data)
-        self.account_detail_serializer = AccountDetailSerializerForUpdate(
+        self.account_detail_serializer = AccountDetailSerializer(
             qs_account_detail, data=account_detail_data)
 
 
@@ -323,7 +321,7 @@ class AccountGroupDetailAllSerializer(BaseSerializer):
         return True
 
 
-class AccountDetail_POST_Serializer(AccountDetailSerializerForCreate):
+class AccountDetail_POST_Serializer(AccountDetailSerializer):
     class Meta:
         model = AccountDetail
         fields = '__all__'
@@ -362,3 +360,4 @@ class AccountSearchGroupSerializer(AccountGroupSerializerForRead):
 
 class AccountSearchDetailSerializer(AccountDetailSerializerSimple):
     pass
+
