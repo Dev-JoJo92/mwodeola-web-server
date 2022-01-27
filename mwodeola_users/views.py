@@ -14,11 +14,12 @@ from .serializers import (
     SignUpVerifySerializer,
     SignUpSerializer,
     SignInSerializer,
-    AutoSignInSerializer,
+    SignInAutoSerializer,
     SignOutSerializer,
     WithdrawalSerializer,
     PasswordAuthSerializer,
     PasswordChangeSerializer,
+    UserWakeUpSerializer,
 )
 
 
@@ -66,9 +67,9 @@ class BaseSignView(APIView):
 
 
 class SignUpVerifyView(BaseSignView):
-    def get(self, request):
+    def post(self, request):
         self.serializer = SignUpVerifySerializer(data=request.data)
-        return super().get(request)
+        return super().post(request)
 
 
 class SignUpView(BaseSignView):
@@ -85,14 +86,14 @@ class SignInView(BaseSignView):
         return super().post(request)
 
 
-class AutoSignInView(BaseSignView):
+class SignInAutoView(BaseSignView):
     permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
     authentication_classes = [JWTAuthenticationForRefresh]
 
     def get(self, request):
         user = get_user_from_request_token(request)
         refresh_token = get_raw_token(request)
-        self.serializer = AutoSignInSerializer(user=user, refresh_token=refresh_token)
+        self.serializer = SignInAutoSerializer(user=user, refresh_token=refresh_token)
         return super().get(request)
 
 
@@ -120,14 +121,25 @@ class WithdrawalView(BaseSignView):
         return super().delete(request)
 
 
-class PasswordAuthView(BaseSignView):
+class TokenRefreshView(BaseSignView):
     permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
     authentication_classes = [JWTAuthenticationForRefresh]
 
     def get(self, request):
+        raw_token = get_raw_token(request)
+        data = {'refresh': raw_token}
+        self.serializer = TokenRefreshSerializer(data=data)
+        return super().get(request)
+
+
+class PasswordAuthView(BaseSignView):
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    authentication_classes = [JWTAuthenticationForRefresh]
+
+    def post(self, request):
         user = get_user_from_request_token(request)
         self.serializer = PasswordAuthSerializer(user, data=request.data)
-        return super().get(request)
+        return super().post(request)
 
 
 class PasswordChangeView(BaseSignView):
@@ -140,23 +152,25 @@ class PasswordChangeView(BaseSignView):
         return super().put(request)
 
 
-class TokenRefreshView(BaseSignView):
-    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
-    authentication_classes = [JWTAuthenticationForRefresh]
+class PasswordChangeForLostUser(BaseSignView):
 
-    def get(self, request):
-        raw_token = get_raw_token(request)
-        data = {'refresh': raw_token}
-        self.serializer = TokenRefreshSerializer(data=data)
-        return super().get(request)
+    def put(self, request):
+        return super().put(request)
 
 
-sign_up_verify = SignUpVerifyView.as_view()
-sign_up = SignUpView.as_view()
-sign_in = SignInView.as_view()
-auto_sign_in = AutoSignInView.as_view()
-sign_out = SignOutView.as_view()
-withdrawal = WithdrawalView.as_view()
-password_auth = PasswordAuthView.as_view()
-password_change = PasswordChangeView.as_view()
-token_refresh = TokenRefreshView.as_view()
+# TODO: 인증 프로세스 추가 예정(휴대폰, 이메일 인증)
+class UserWakeUpView(BaseSignView):
+    def put(self, request):
+        # self.serializer = UserWakeUpSerializer(data=request.data)
+        return super().put(request)
+
+
+# TODO: 인증 프로세스 추가 예정(휴대폰, 이메일 인증, 계좌? 등...)
+class UserUnlockView(BaseSignView):
+    def put(self, request):
+        return super().put(request)
+
+
+class UserChangePhoneNumberView(BaseSignView):
+    def put(self, request):
+        return super().put(request)

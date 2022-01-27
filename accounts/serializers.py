@@ -16,6 +16,7 @@ from .serializers_base import (
     AccountSerializerForRead,
 )
 
+
 CIPHER = AESCipher()
 
 
@@ -31,10 +32,13 @@ class BaseSerializer(serializers.Serializer):
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):
-            self.err_messages = self.errors
+            self.err_messages['detail'] = 'Field error'
+            self.err_messages['code'] = 'field_error'
+            self.err_messages['errors'] = self.errors
             return False
         if self.user is None:
-            self.err_messages['error'] = 'Server Error (500)'
+            self.err_messages['detail'] = 'Server Error (500)'
+            self.err_messages['code'] = 'server_error'
             self.err_status = status.HTTP_500_INTERNAL_SERVER_ERROR
             return False
         return True
@@ -65,10 +69,14 @@ class BaseNestedSerializer:
     def is_valid(self) -> bool:
         valid = True
         if not self.account_group_serializer.is_valid():
+            self.err_messages['detail'] = 'Field error'
+            self.err_messages['code'] = 'field_error'
             self.err_messages['account_group_errors'] = self.account_group_serializer.errors
             self.err_status = status.HTTP_400_BAD_REQUEST
             valid = False
         if not self.account_detail_serializer.is_valid():
+            self.err_messages['detail'] = 'Field error'
+            self.err_messages['code'] = 'field_error'
             self.err_messages['account_detail_errors'] = self.account_detail_serializer.errors
             self.err_status = status.HTTP_400_BAD_REQUEST
             valid = False

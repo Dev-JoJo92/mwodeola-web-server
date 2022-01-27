@@ -57,6 +57,8 @@ ALLOWED_HOSTS = [
 
 AUTH_USER_MODEL = 'mwodeola_users.MwodeolaUser'
 
+AUTH_LIMIT = 10
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -187,8 +189,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
 
-# LANGUAGE_CODE = 'en-us'
-LANGUAGE_CODE = 'ko-kr'
+LANGUAGE_CODE = 'en-us'
+# LANGUAGE_CODE = 'ko-kr'
 
 TIME_ZONE = 'Asia/Seoul'
 

@@ -26,7 +26,9 @@ class BaseSerializer(serializers.Serializer):
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):
-            self.err_messages = self.errors
+            self.err_messages['detail'] = 'Field error'
+            self.err_messages['code'] = 'field_error'
+            self.err_messages['errors'] = self.errors
             self.err_status = status.HTTP_400_BAD_REQUEST
             return False
         else:
@@ -50,7 +52,9 @@ class BaseModelSerializer(serializers.ModelSerializer):
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):
-            self.err_messages = self.errors
+            self.err_messages['detail'] = 'Field error'
+            self.err_messages['code'] = 'field_error'
+            self.err_messages['errors'] = self.errors
             self.err_status = status.HTTP_400_BAD_REQUEST
             return False
         return True
@@ -103,7 +107,7 @@ class SignInSerializer(TokenObtainPairSerializer):
     pass
 
 
-class AutoSignInSerializer(BaseSerializer):
+class SignInAutoSerializer(BaseSerializer):
 
     def __init__(self, instance=None, data=empty, **kwargs):
         self.user = kwargs.pop('user', None)
@@ -112,7 +116,8 @@ class AutoSignInSerializer(BaseSerializer):
 
     def is_valid(self, raise_exception=False):
         if self.user is None or self.old_refresh is None:
-            self.err_messages['error'] = 'Server Error (500)'
+            self.err_messages['detail'] = 'Server Error (500)'
+            self.err_messages['code'] = 'server_error'
             self.err_status = status.HTTP_500_INTERNAL_SERVER_ERROR
             return False
 
@@ -144,7 +149,8 @@ class WithdrawalSerializer(UserAuthMixin, BaseSerializer):
 
     def is_valid(self, raise_exception=False):
         if self.instance is None:
-            self.err_messages['error'] = 'Server Error (500)'
+            self.err_messages['detail'] = 'Server Error (500)'
+            self.err_messages['code'] = 'server_error'
             self.err_status = status.HTTP_500_INTERNAL_SERVER_ERROR
             return False
         if not super().is_valid(raise_exception):
@@ -153,9 +159,18 @@ class WithdrawalSerializer(UserAuthMixin, BaseSerializer):
         phone_number = self.validated_data['phone_number']
         password = self.validated_data['password']
 
-        user = self.get_user_by_authentication_rule(phone_number, password)
+        authed_user = self.get_user_by_authentication_rule(phone_number, password)
+        token_user = self.instance
 
-        return user is not None
+        if authed_user is None:
+            return False
+        if authed_user.id != token_user.id:
+            self.err_messages['detail'] = 'Are you hacker?'
+            self.err_messages['code'] = 'hacker_suspicion'
+            self.err_status = status.HTTP_403_FORBIDDEN
+            return False
+
+        return True
 
     def delete(self):
         self.instance.delete()
@@ -166,7 +181,8 @@ class PasswordAuthSerializer(UserAuthMixin, BaseSerializer):
 
     def is_valid(self, raise_exception=False):
         if self.instance is None:
-            self.err_messages['error'] = 'Server Error (500)'
+            self.err_messages['detail'] = 'Server Error (500)'
+            self.err_messages['code'] = 'server_error'
             self.err_status = status.HTTP_500_INTERNAL_SERVER_ERROR
             return False
         if not super().is_valid(False):
@@ -186,7 +202,8 @@ class PasswordChangeSerializer(BaseSerializer, UserAuthMixin):
 
     def is_valid(self, raise_exception=False):
         if self.instance is None:
-            self.err_messages['error'] = 'Server Error (500)'
+            self.err_messages['detail'] = 'Server Error (500)'
+            self.err_messages['code'] = 'server_error'
             self.err_status = status.HTTP_500_INTERNAL_SERVER_ERROR
             return False
         if not super().is_valid(raise_exception):
@@ -211,4 +228,47 @@ class PasswordChangeSerializer(BaseSerializer, UserAuthMixin):
         return {}
 
 
+class UserWakeUpSerializer(BaseSerializer, UserAuthMixin):
+    phone_number = serializers.CharField()
+    password = PasswordField()
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            return False
+
+        user = self.get_user_for_inactive_user(
+            self.validated_data['phone_number'],
+            self.validated_data['password']
+        )
+
+        self.instance = user
+        return user is not None
+
+    def update(self, instance, validated_data):
+        instance.is_active = True
+        instance.save()
+        return {}
+
+
+class UserUnlockSerializer(BaseSerializer, UserAuthMixin):
+    phone_number = serializers.CharField()
+    password = PasswordField()
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            return False
+
+        user = self.get_user_for_inactive_user(
+            self.validated_data['phone_number'],
+            self.validated_data['password']
+        )
+
+        self.instance = user
+        return user is not None
+
+    def update(self, instance, validated_data):
+        instance.is_locked = False
+        instance.is_active = True
+        instance.save()
+        return {}
 

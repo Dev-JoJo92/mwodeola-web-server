@@ -1,12 +1,9 @@
-from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ObjectDoesNotExist
-from rest_framework import HTTP_HEADER_ENCODING, exceptions, status
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework import HTTP_HEADER_ENCODING
 from rest_framework_simplejwt.settings import api_settings
-from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
-from rest_framework_simplejwt.tokens import RefreshToken, UntypedToken
-from ..models import MwodeolaUser
+from rest_framework_simplejwt.exceptions import InvalidToken, AuthenticationFailed
+from rest_framework_simplejwt.tokens import UntypedToken
 
 
 AUTH_HEADER_TYPES = api_settings.AUTH_HEADER_TYPES
@@ -39,7 +36,7 @@ def get_raw_token(request):
         return None
 
     if len(parts) != 2:
-        raise exceptions.AuthenticationFailed(
+        raise AuthenticationFailed(
             _('Authorization header must contain two space-delimited values'),
             code='bad_authorization_header',
         )
@@ -62,12 +59,12 @@ def get_user_from_request_token(request):
     try:
         user = get_user_model().objects.get(**{api_settings.USER_ID_FIELD: user_id})
     except get_user_model().DoesNotExist:
-        raise exceptions.AuthenticationFailed(_('User not found'), code='user_not_found')
+        raise AuthenticationFailed(_('User not found'), code='user_not_found')
 
     if not user.is_active:
-        raise exceptions.AuthenticationFailed(_('User is inactive'), code='user_inactive')
+        raise AuthenticationFailed(_('User is inactive'), code='user_inactive')
 
     if user.is_locked:
-        raise exceptions.AuthenticationFailed(_('User is locked'), code='user_locked')
+        raise AuthenticationFailed(_('User is locked'), code='user_locked')
 
     return user

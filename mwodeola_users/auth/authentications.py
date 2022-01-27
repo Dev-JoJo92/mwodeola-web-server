@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
-from rest_framework import HTTP_HEADER_ENCODING, authentication
+from rest_framework import HTTP_HEADER_ENCODING, authentication, exceptions
 
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken, TokenError
@@ -117,11 +117,11 @@ class JWTAuthentication(authentication.BaseAuthentication):
         except self.user_model.DoesNotExist:
             raise AuthenticationFailed(_('User not found'), code='user_not_found')
 
-        if not user.is_active:
-            raise AuthenticationFailed(_('User is inactive'), code='user_inactive')
-
         if user.is_locked:
             raise AuthenticationFailed(_('User is locked'), code='user_locked')
+
+        if not user.is_active:
+            raise AuthenticationFailed(_('User is inactive'), code='user_inactive')
 
         return user
 
@@ -169,4 +169,4 @@ def default_user_authentication_rule(user):
     # `AllowAllUsersModelBackend`.  However, we explicitly prevent inactive
     # users from authenticating to enforce a reasonable policy and provide
     # sensible backwards compatibility with older Django versions.
-    return user is not None and user.is_active and not user.is_locked
+    return user is not None and not user.is_locked and user.is_active

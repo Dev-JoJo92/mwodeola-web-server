@@ -75,7 +75,8 @@ class AccountGroupFavoriteView(BaseAPIView):
 class AccountGroupDetailView(BaseAPIView):
 
     def get(self, request):
-        self.serializer = serializers.AccountGroupDetail_GET_Serializer(user=self.request_user, data=request.data)
+        data = {'account_detail_id': request.GET.get('id', None)}
+        self.serializer = serializers.AccountGroupDetail_GET_Serializer(user=self.request_user, data=data)
         return super().get(request)
 
     def post(self, request):
@@ -102,7 +103,8 @@ class AccountGroupSnsDetailView(BaseAPIView):
 class AccountGroupDetailAllView(BaseAPIView):
 
     def get(self, request):
-        self.serializer = serializers.AccountGroupDetailAllSerializer(user=self.request_user, data=request.data)
+        data = {'account_group_id': request.GET.get('group_id', None)}
+        self.serializer = serializers.AccountGroupDetailAllSerializer(user=self.request_user, data=data)
         return super().get(request)
 
 

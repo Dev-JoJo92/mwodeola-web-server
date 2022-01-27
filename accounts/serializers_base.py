@@ -23,10 +23,13 @@ class BaseSerializer(serializers.Serializer):
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):
-            self.err_messages = self.errors
+            self.err_messages['detail'] = 'Field error'
+            self.err_messages['code'] = 'field_error'
+            self.err_messages['errors'] = self.errors
             return False
         if self.user is None:
-            self.err_messages['error'] = 'Server Error (500)'
+            self.err_messages['detail'] = 'Server Error (500)'
+            self.err_messages['code'] = 'server_error'
             self.err_status = status.HTTP_500_INTERNAL_SERVER_ERROR
             return False
         return True

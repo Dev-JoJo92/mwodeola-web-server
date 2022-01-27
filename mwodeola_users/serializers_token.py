@@ -40,7 +40,9 @@ class BaseTokenSerializer(serializers.Serializer):
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):
-            self.err_messages = self.errors
+            self.err_messages['detail'] = 'Field error'
+            self.err_messages['code'] = 'field_error'
+            self.err_messages['errors'] = self.errors
             self.err_status = status.HTTP_400_BAD_REQUEST
             return False
         return True
