@@ -53,7 +53,12 @@ class DataAllCountView(BaseAPIView):
         group_count = len(groups)
         account_count = Account.objects.filter(own_group__in=groups).count()
         results = {
-            'group_count': group_count,
-            'detail_count': account_count
+            'account': {
+                'group_count': group_count,
+                'detail_count': account_count
+            },
+            'credit_card': {
+
+            }
         }
         return JsonResponse(results, status=status.HTTP_200_OK)
