@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     'mwodeola_users.apps.MwodeolaUsersConfig',
     'accounts.apps.AccountsConfig',
     'tests.apps.TestsConfig',
+    'commons.apps.CommonsConfig',
 ]
 
 REST_FRAMEWORK = {
