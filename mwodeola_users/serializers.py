@@ -71,7 +71,8 @@ class SignUpVerifySerializer(BaseSerializer):
 
         query_set = MwodeolaUser.objects.filter(phone_number=phone_number)
         if query_set.exists():
-            self.err_messages['error'] = 'already joined'
+            self.err_messages['detail'] = 'Already registered phone number'
+            self.err_messages['code'] = 'already_registered_phone_number'
             self.err_status = status.HTTP_400_BAD_REQUEST
             return False
         else:
@@ -107,6 +108,25 @@ class SignInSerializer(TokenObtainPairSerializer):
     pass
 
 
+class SignInVerifySerializer(BaseSerializer):
+    phone_number = serializers.CharField()
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            return False
+
+        phone_number = self.validated_data['phone_number']
+
+        query_set = MwodeolaUser.objects.filter(phone_number=phone_number)
+        if query_set.exists():
+            return True
+        else:
+            self.err_messages['detail'] = 'Unregistered users'
+            self.err_messages['code'] = 'unregistered_users'
+            self.err_status = status.HTTP_400_BAD_REQUEST
+            return False
+
+
 class SignInAutoSerializer(BaseSerializer):
 
     def __init__(self, instance=None, data=empty, **kwargs):
@@ -124,7 +144,8 @@ class SignInAutoSerializer(BaseSerializer):
         try:
             RefreshToken(self.old_refresh).blacklist()
         except TokenError as e:
-            self.err_messages['error'] = e.args[0]
+            self.err_messages['detail'] = e.args[0]
+            self.err_messages['code'] = 'blacklist_token_error'
             self.err_status = status.HTTP_400_BAD_REQUEST
             return False
 

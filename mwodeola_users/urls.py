@@ -5,6 +5,7 @@ urlpatterns = [
     path('users/sign_up/verify', views.SignUpVerifyView.as_view()),
     path('users/sign_up', views.SignUpView.as_view()),
     path('users/sign_in', views.SignInView.as_view()),
+    path('users/sign_in/verify', views.SignInVerifyView.as_view()),
     path('users/sign_in/auto', views.SignInAutoView.as_view()),
     path('users/sign_out', views.SignOutView.as_view()),
     path('users/withdrawal', views.WithdrawalView.as_view()),

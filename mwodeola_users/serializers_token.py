@@ -148,7 +148,8 @@ class TokenVerifySerializer(BaseTokenSerializer):
         if api_settings.BLACKLIST_AFTER_ROTATION:
             jti = token.get(api_settings.JTI_CLAIM)
             if BlacklistedToken.objects.filter(token__jti=jti).exists():
-                self.err_messages['error'] = 'Token is blacklisted'
+                self.err_messages['detail'] = 'Token is blacklisted'
+                self.err_messages['code'] = 'blacklisted_token'
                 self.err_status = status.HTTP_400_BAD_REQUEST
                 return False
 
@@ -167,7 +168,8 @@ class TokenBlacklistSerializer(BaseTokenSerializer):
         try:
             refresh = RefreshToken(self.validated_data['refresh'])
         except TokenError as e:
-            self.err_messages['error'] = e.args[0]
+            self.err_messages['detail'] = e.args[0]
+            self.err_messages['code'] = 'blacklist_token_error'
             self.err_status = status.HTTP_400_BAD_REQUEST
             return False
 

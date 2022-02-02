@@ -13,6 +13,7 @@ from .serializers_token import TokenRefreshSerializer
 from .serializers import (
     SignUpVerifySerializer,
     SignUpSerializer,
+    SignInVerifySerializer,
     SignInSerializer,
     SignInAutoSerializer,
     SignOutSerializer,
@@ -75,6 +76,12 @@ class SignUpVerifyView(BaseSignView):
 class SignUpView(BaseSignView):
     def post(self, request):
         self.serializer = SignUpSerializer(data=request.data)
+        return super().post(request)
+
+
+class SignInVerifyView(BaseSignView):
+    def post(self, request):
+        self.serializer = SignInVerifySerializer(data=request.data)
         return super().post(request)
 
 
@@ -165,7 +172,11 @@ class UserWakeUpView(BaseSignView):
         return super().put(request)
 
 
-# TODO: 인증 프로세스 추가 예정(휴대폰, 이메일 인증, 계좌? 등...)
+# TODO: 인증 프로세스 추가 예정
+# TODO: 1. 휴대폰 번호 인증
+# TODO: 2. 이메일 인증
+# TODO: 3. 계좌 인증
+# TODO: 4. 퀴즈(개인정보가 유출되지 않는 선에서 해당 유저의 정보를 이용한 퀴즈)
 class UserUnlockView(BaseSignView):
     def put(self, request):
         return super().put(request)
