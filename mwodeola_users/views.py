@@ -11,7 +11,8 @@ from .auth import get_raw_token, get_user_from_request_token
 from .auth.authentications import JWTAuthenticationForRefresh
 from .serializers_token import TokenRefreshSerializer
 from .serializers import (
-    SignUpVerifySerializer,
+    SignUpVerifyPhoneSerializer,
+    SignUpVerifyEmailSerializer,
     SignUpSerializer,
     SignInVerifySerializer,
     SignInSerializer,
@@ -67,9 +68,15 @@ class BaseSignView(APIView):
             return JsonResponse(serializer.err_messages, status=serializer.err_status)
 
 
-class SignUpVerifyView(BaseSignView):
+class SignUpVerifyPhoneView(BaseSignView):
     def post(self, request):
-        self.serializer = SignUpVerifySerializer(data=request.data)
+        self.serializer = SignUpVerifyPhoneSerializer(data=request.data)
+        return super().post(request)
+
+
+class SignUpVerifyEmailView(BaseSignView):
+    def post(self, request):
+        self.serializer = SignUpVerifyEmailSerializer(data=request.data)
         return super().post(request)
 
 

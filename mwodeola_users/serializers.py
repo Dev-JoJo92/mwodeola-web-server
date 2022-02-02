@@ -60,8 +60,8 @@ class BaseModelSerializer(serializers.ModelSerializer):
         return True
 
 
-class SignUpVerifySerializer(BaseSerializer):
-    phone_number = serializers.CharField(max_length=16)
+class SignUpVerifyPhoneSerializer(BaseSerializer):
+    phone_number = serializers.CharField()
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):
@@ -73,6 +73,25 @@ class SignUpVerifySerializer(BaseSerializer):
         if query_set.exists():
             self.err_messages['detail'] = 'Already registered phone number'
             self.err_messages['code'] = 'already_registered_phone_number'
+            self.err_status = status.HTTP_400_BAD_REQUEST
+            return False
+        else:
+            return True
+
+
+class SignUpVerifyEmailSerializer(BaseSerializer):
+    email = serializers.EmailField(max_length=255)
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            return False
+
+        email = self.validated_data['email']
+
+        query_set = MwodeolaUser.objects.filter(email=email)
+        if query_set.exists():
+            self.err_messages['detail'] = 'Already registered email'
+            self.err_messages['code'] = 'already_registered_email'
             self.err_status = status.HTTP_400_BAD_REQUEST
             return False
         else:
