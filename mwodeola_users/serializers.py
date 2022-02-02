@@ -163,10 +163,7 @@ class SignInAutoSerializer(BaseSerializer):
         try:
             RefreshToken(self.old_refresh).blacklist()
         except TokenError as e:
-            self.err_messages['detail'] = e.args[0]
-            self.err_messages['code'] = 'blacklist_token_error'
-            self.err_status = status.HTTP_400_BAD_REQUEST
-            return False
+            pass
 
         refresh = RefreshToken.for_user(self.user)
 

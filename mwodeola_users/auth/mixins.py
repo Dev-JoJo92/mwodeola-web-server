@@ -41,6 +41,7 @@ class UserAuthMixin:
                 self.err_messages['detail'] = 'Authentication failed'
                 self.err_messages['code'] = 'authentication_failed'
                 self.err_messages['count'] = user.count_auth_failed
+                self.err_messages['limit'] = AUTH_LIMIT
                 self.err_status = status.HTTP_401_UNAUTHORIZED
             else:
                 user.count_auth_failed += 1
@@ -81,6 +82,7 @@ class UserAuthMixin:
                 self.err_messages['detail'] = 'Authentication failed'
                 self.err_messages['code'] = 'authentication_failed'
                 self.err_messages['count'] = user.count_auth_failed
+                self.err_messages['limit'] = AUTH_LIMIT
                 self.err_status = status.HTTP_401_UNAUTHORIZED
             else:
                 user.count_auth_failed += 1
@@ -119,6 +121,7 @@ class UserAuthMixin:
                 self.err_messages['detail'] = 'Authentication failed'
                 self.err_messages['code'] = 'authentication_failed'
                 self.err_messages['count'] = user.count_auth_failed
+                self.err_messages['limit'] = AUTH_LIMIT
                 self.err_status = status.HTTP_401_UNAUTHORIZED
             else:
                 user.count_auth_failed += 1
