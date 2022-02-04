@@ -1,12 +1,13 @@
 from abc import ABC
 from django.contrib.auth.models import update_last_login
+from django.core.validators import RegexValidator
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status, exceptions
 from rest_framework.fields import empty
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.exceptions import TokenError
-from .models import MwodeolaUser
+from .models import MwodeolaUser, PHONE_NUMBER_REGEX_VALIDATOR
 from .auth.mixins import UserAuthMixin
 from .serializers_token import (
     TokenObtainPairSerializer,
@@ -61,7 +62,7 @@ class BaseModelSerializer(serializers.ModelSerializer):
 
 
 class SignUpVerifyPhoneSerializer(BaseSerializer):
-    phone_number = serializers.CharField()
+    phone_number = serializers.CharField(validators=[PHONE_NUMBER_REGEX_VALIDATOR])
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):
