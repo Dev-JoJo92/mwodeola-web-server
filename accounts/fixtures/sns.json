@@ -3,7 +3,7 @@
     "model": "accounts.sns",
     "fields": {
       "id": 1,
-      "name": "Naver",
+      "name": "네이버",
       "app_package_name": "com.nhn.android.search",
       "web_url": "https://www.naver.com/"
     }
@@ -42,6 +42,15 @@
       "name": "Facebook",
       "app_package_name": "com.facebook.katana",
       "web_url": "https://www.facebook.com/"
+    }
+  },
+  {
+    "model": "accounts.sns",
+    "fields": {
+      "id": 5,
+      "name": "Twitter",
+      "app_package_name": "com.twitter.android",
+      "web_url": "https://twitter.com/"
     }
   }
 ]

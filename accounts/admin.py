@@ -4,6 +4,7 @@ from .models import SNS, AccountGroup, AccountDetail, Account
 
 class SNS_Admin(admin.ModelAdmin):
     list_display = ('id', 'name')
+    ordering = ('id',)
 
 
 class AccountGroupAdmin(admin.ModelAdmin):
