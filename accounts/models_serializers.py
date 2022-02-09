@@ -11,9 +11,6 @@ from _mwodeola.cipher import AESCipher
 from rest_framework.fields import empty
 
 
-CIPHER = AESCipher()
-
-
 class BaseSerializer(serializers.Serializer):
 
     def __init__(self, instance=None, data=empty, **kwargs):
@@ -57,63 +54,67 @@ class BaseModelSerializer(serializers.ModelSerializer):
             return True
 
 
-class SnsSerializer(serializers.ModelSerializer):
+class SnsSerializer(BaseModelSerializer):
     class Meta:
         model = SNS
         fields = '__all__'
 
 
 # [AccountGroup] Serializer
-class AccountGroupSerializerForCreate(BaseSerializer):
+class AccountGroupSerializerForCreate(BaseModelSerializer):
     mwodeola_user = serializers.PrimaryKeyRelatedField(queryset=MwodeolaUser.objects.all(), write_only=True)
-    id = serializers.UUIDField(read_only=True)
-    sns = serializers.PrimaryKeyRelatedField(queryset=SNS.objects.all(), allow_null=True, default=None)
-    group_name = serializers.CharField(max_length=30, default=None)
-    app_package_name = serializers.CharField(max_length=100, default=None)
-    web_url = serializers.CharField(max_length=100, default=None)
-    icon_type = serializers.ChoiceField(choices=ICON_TYPE, default=0)
-    icon_image_url = serializers.URLField(max_length=500, allow_null=True, default=None)
-    is_favorite = serializers.BooleanField(default=False)
 
-    def is_valid(self, raise_exception=False):
-        if not super().is_valid(raise_exception):
-            return False
-        sns = self.validated_data['sns']
-        group_name = self.validated_data['group_name']
-
-        if sns is None and group_name is None:
-            self.err_messages['message'] = 'Field error'
-            self.err_messages['code'] = 'field_error'
-            self.err_messages['detail'] = 'group_name is required field'
-            return False
-        return True
+    class Meta:
+        model = AccountGroup
+        fields = '__all__'
 
     def create(self, validated_data):
-        kwargs = dict()
+        sns = validated_data.get('sns', None)
+        group_name = validated_data.get('group_name', None)
 
-        for key in validated_data:
-            kwargs[key] = validated_data.get(key, None)
-
-        sns = validated_data['sns']
+        if sns is None and group_name is None:
+            raise exceptions.FieldExceptions(group_name='required fields')
 
         if sns is not None:
-            kwargs['group_name'] = sns.name
-            kwargs['app_package_name'] = sns.app_package_name
-            kwargs['web_url'] = sns.web_url
-            kwargs['icon_type'] = 3
-            kwargs.pop('icon_image_url')
+            validated_data['group_name'] = sns.name
+            validated_data['app_package_name'] = sns.app_package_name
+            validated_data['icon_type'] = 3
+            validated_data.setdefault('web_url', sns.web_url)
 
         try:
-            new_group = AccountGroup.objects.create(**kwargs)
-        except ValueError as e:
-            raise exceptions.FieldException(group_name=e.args)
+            new_group = super().create(validated_data)
         except IntegrityError as e:
-            raise exceptions.DuplicatedException(group_Name=str(e))
+            raise exceptions.DuplicatedException(group_name=str(e))
 
         return new_group
 
     def update(self, instance, validated_data):
-        pass
+        return {}
+
+
+# [AccountGroup] Serializer
+class AccountGroupSerializerForUpdate(BaseModelSerializer):
+    mwodeola_user = serializers.PrimaryKeyRelatedField(queryset=MwodeolaUser.objects.all(), write_only=True)
+
+    class Meta:
+        model = AccountGroup
+        fields = '__all__'
+        read_only_fields = ['sns']
+
+    def create(self, validated_data):
+        return {}
+
+    def update(self, instance, validated_data):
+        if instance.sns is not None:
+            validated_data.pop('app_package_name', None)
+            validated_data.pop('icon_type', None)
+
+        try:
+            group = super().update(instance, validated_data)
+        except IntegrityError as e:
+            raise exceptions.DuplicatedException(group_name=str(e))
+
+        return group
 
 
 # [AccountGroup] Serializer
@@ -123,29 +124,18 @@ class AccountGroupSerializerForRead(BaseModelSerializer):
         exclude = ['mwodeola_user']
 
 
-# [AccountGroup] Serializer
-class AccountGroupSerializerForUpdate(BaseModelSerializer):
-    class Meta:
-        model = AccountGroup
-        exclude = ['sns', 'icon_image_url']
-
-
 # [AccountDetail] Serializer
 class AccountDetailSerializer(BaseModelSerializer):
+
     class Meta:
         model = AccountDetail
         exclude = ['group']
 
     def create(self, validated_data):
-        validated_data['user_password'] = AESCipher().encrypt(validated_data['user_password'])
-        try:
-            validated_data['user_password_pin'] = AESCipher().encrypt(validated_data['user_password_pin'])
-        except KeyError:
-            pass
-        try:
-            validated_data['user_password_pattern'] = AESCipher().encrypt(validated_data['user_password_pattern'])
-        except KeyError:
-            pass
+        cipher = AESCipher()
+        validated_data['user_password'] = cipher.encrypt(validated_data['user_password'])
+        validated_data['user_password_pin'] = cipher.encrypt(validated_data.get('user_password_pin', None))
+        validated_data['user_password_pattern'] = cipher.encrypt(validated_data.get('user_password_pattern', None))
 
         new_detail = super().create(validated_data)
         Account.objects.create(
@@ -155,23 +145,19 @@ class AccountDetailSerializer(BaseModelSerializer):
         return new_detail
 
     def update(self, instance, validated_data):
-        validated_data['user_password'] = CIPHER.encrypt(validated_data['user_password'])
-        try:
-            validated_data['user_password_pin'] = CIPHER.encrypt(validated_data['user_password_pin'])
-        except KeyError:
-            pass
-        try:
-            validated_data['user_password_pattern'] = CIPHER.encrypt(validated_data['user_password_pattern'])
-        except KeyError:
-            pass
+        cipher = AESCipher()
+        validated_data['user_password'] = cipher.encrypt(validated_data['user_password'])
+        validated_data['user_password_pin'] = cipher.encrypt(validated_data.get('user_password_pin', None))
+        validated_data['user_password_pattern'] = cipher.encrypt(validated_data.get('user_password_pattern', None))
         return super().update(instance, validated_data)
 
     @property
     def data(self):
+        cipher = AESCipher()
         data = super().data
-        data['user_password'] = AESCipher().decrypt(data['user_password'])
-        data['user_password_pin'] = AESCipher().decrypt(data['user_password_pin'])
-        data['user_password_pattern'] = AESCipher().decrypt(data['user_password_pattern'])
+        data['user_password'] = cipher.decrypt(data['user_password'])
+        data['user_password_pin'] = cipher.decrypt(data['user_password_pin'])
+        data['user_password_pattern'] = cipher.decrypt(data['user_password_pattern'])
         return ReturnDict(data, serializer=self)
 
 

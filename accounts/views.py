@@ -118,7 +118,7 @@ class AccountGroupDetailAllView(BaseAPIView):
 class AccountDetailView(BaseAPIView):
 
     def post(self, request):
-        self.serializer = serializers.AccountDetail_POST_Serializer(data=request.data)
+        self.serializer = serializers.AccountDetail_POST_Serializer(user=request.user, data=request.data)
         return super().post(request)
 
     def delete(self, request):

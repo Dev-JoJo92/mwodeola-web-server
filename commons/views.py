@@ -3,8 +3,11 @@ from rest_framework import status
 from rest_framework.views import APIView
 
 from mwodeola_users.auth import get_raw_token, get_user_from_request_token
-from accounts.models import AccountGroup, AccountDetail, Account
+from accounts.models import SNS, AccountGroup, AccountDetail, Account
 
+from .serializers import (
+    SnsSerializer
+)
 
 # Create your views here.
 class BaseAPIView(APIView):
@@ -45,6 +48,13 @@ class BaseAPIView(APIView):
             return JsonResponse(serializer.results, safe=False, status=status.HTTP_200_OK)
         else:
             return JsonResponse(serializer.err_messages, status=serializer.err_status)
+
+
+class SnsInfoView(BaseAPIView):
+    def get(self, request):
+        sns_qs = SNS.objects.all()
+        serializer = SnsSerializer(sns_qs, many=True)
+        return JsonResponse(serializer.data, safe=False, status=status.HTTP_200_OK)
 
 
 class DataAllCountView(BaseAPIView):

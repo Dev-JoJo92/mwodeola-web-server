@@ -23,7 +23,7 @@ class UserAuthMixin:
             pass
 
         if user is None:
-            self.err_messages['detail'] = 'User not found'
+            self.err_messages['message'] = 'User not found'
             self.err_messages['code'] = 'user_not_found'
             self.err_status = status.HTTP_401_UNAUTHORIZED
             return None
@@ -38,7 +38,7 @@ class UserAuthMixin:
             if user.count_auth_failed < AUTH_LIMIT - 1:
                 user.count_auth_failed += 1
                 user.save()
-                self.err_messages['detail'] = 'Authentication failed'
+                self.err_messages['message'] = 'Authentication failed'
                 self.err_messages['code'] = 'authentication_failed'
                 self.err_messages['count'] = user.count_auth_failed
                 self.err_messages['limit'] = AUTH_LIMIT
@@ -48,7 +48,7 @@ class UserAuthMixin:
                 user.is_locked = True
                 user.save()
                 self._blacklist_all(user)
-                self.err_messages['detail'] = 'Exceeded number of authentications'
+                self.err_messages['message'] = 'Exceeded number of authentications'
                 self.err_messages['code'] = 'authentication_exceed'
                 self.err_status = status.HTTP_403_FORBIDDEN
             return None
@@ -66,7 +66,7 @@ class UserAuthMixin:
             pass
 
         if user is None:
-            self.err_messages['detail'] = 'User not found'
+            self.err_messages['message'] = 'User not found'
             self.err_messages['code'] = 'user_not_found'
             self.err_status = status.HTTP_401_UNAUTHORIZED
             return None
@@ -79,7 +79,7 @@ class UserAuthMixin:
             if user.count_auth_failed < AUTH_LIMIT - 1:
                 user.count_auth_failed += 1
                 user.save()
-                self.err_messages['detail'] = 'Authentication failed'
+                self.err_messages['message'] = 'Authentication failed'
                 self.err_messages['code'] = 'authentication_failed'
                 self.err_messages['count'] = user.count_auth_failed
                 self.err_messages['limit'] = AUTH_LIMIT
@@ -89,7 +89,7 @@ class UserAuthMixin:
                 user.is_locked = True
                 user.save()
                 self._blacklist_all(user)
-                self.err_messages['detail'] = 'Exceeded number of authentications'
+                self.err_messages['message'] = 'Exceeded number of authentications'
                 self.err_messages['code'] = 'authentication_exceed'
                 self.err_status = status.HTTP_403_FORBIDDEN
             return None
@@ -107,7 +107,7 @@ class UserAuthMixin:
             pass
 
         if user is None:
-            self.err_messages['detail'] = 'User not found'
+            self.err_messages['message'] = 'User not found'
             self.err_messages['code'] = 'user_not_found'
             self.err_status = status.HTTP_401_UNAUTHORIZED
             return None
@@ -118,7 +118,7 @@ class UserAuthMixin:
             if user.count_auth_failed < AUTH_LIMIT - 1:
                 user.count_auth_failed += 1
                 user.save()
-                self.err_messages['detail'] = 'Authentication failed'
+                self.err_messages['message'] = 'Authentication failed'
                 self.err_messages['code'] = 'authentication_failed'
                 self.err_messages['count'] = user.count_auth_failed
                 self.err_messages['limit'] = AUTH_LIMIT
@@ -128,7 +128,7 @@ class UserAuthMixin:
                 user.is_locked = True
                 user.save()
                 self._blacklist_all(user)
-                self.err_messages['detail'] = 'Exceeded number of authentications'
+                self.err_messages['message'] = 'Exceeded number of authentications'
                 self.err_messages['code'] = 'authentication_exceed'
                 self.err_status = status.HTTP_403_FORBIDDEN
             return None
@@ -139,7 +139,7 @@ class UserAuthMixin:
 
     def _is_locked_user(self, user) -> bool:
         if user.is_locked:
-            self.err_messages['detail'] = 'User is locked'
+            self.err_messages['message'] = 'User is locked'
             self.err_messages['code'] = 'user_locked'
             self.err_status = status.HTTP_403_FORBIDDEN
             return True
@@ -148,7 +148,7 @@ class UserAuthMixin:
 
     def _is_inactive_user(self, user) -> bool:
         if not user.is_active:
-            self.err_messages['detail'] = 'User is inactive'
+            self.err_messages['message'] = 'User is inactive'
             self.err_messages['code'] = 'user_inactive'
             self.err_status = status.HTTP_403_FORBIDDEN
             return True

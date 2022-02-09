@@ -13,7 +13,7 @@ class AccountGroupAdmin(admin.ModelAdmin):
                     'created_at')
     list_filter = ['created_at']
     search_fields = ['group_name']
-    readonly_fields = ('id',)
+    readonly_fields = ('id', 'mwodeola_user')
     ordering = ('created_at',)
 
 
@@ -30,9 +30,9 @@ class AccountDetailAdmin(admin.ModelAdmin):
 
 
 class AccountAdmin(admin.ModelAdmin):
-    list_display = ('user', 'own_group', 'sns_group', 'detail')
+    list_display = ('user', 'own_group', 'sns_group', 'detail', 'created_at')
     search_fields = ['own_group']
-    readonly_fields = ('id', 'own_group', 'sns_group', 'detail')
+    readonly_fields = ('id', 'own_group', 'sns_group', 'detail', 'created_at')
     ordering = ('created_at',)
 
     def user(self, obj):
