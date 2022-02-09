@@ -1,0 +1,277 @@
+from collections import OrderedDict
+
+from django.db import IntegrityError
+from rest_framework import serializers, status
+from rest_framework.utils.serializer_helpers import ReturnDict, BindingDict
+
+from .models import AccountGroup, AccountDetail, Account, SNS, ICON_TYPE
+from mwodeola_users.models import MwodeolaUser
+from _mwodeola import exceptions
+from _mwodeola.cipher import AESCipher
+from rest_framework.fields import empty
+
+
+CIPHER = AESCipher()
+
+
+class BaseSerializer(serializers.Serializer):
+
+    def __init__(self, instance=None, data=empty, **kwargs):
+        self.results = {}
+        self.err_messages = {}
+        self.err_status = status.HTTP_400_BAD_REQUEST
+
+        super().__init__(instance, data, **kwargs)
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            self.err_messages['message'] = 'Field error'
+            self.err_messages['code'] = 'field_error'
+            self.err_messages['detail'] = self.errors
+            return False
+        return True
+
+    def create(self, validated_data):
+        return {}
+
+    def update(self, instance, validated_data):
+        return {}
+
+
+class BaseModelSerializer(serializers.ModelSerializer):
+
+    def __init__(self, instance=None, data=empty, **kwargs):
+        super().__init__(instance, data, **kwargs)
+        self.results = {}
+        self.err_messages = {}
+        self.err_status = status.HTTP_400_BAD_REQUEST
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            self.err_messages['message'] = 'Field error'
+            self.err_messages['code'] = 'field_error'
+            self.err_messages['detail'] = self.errors
+            return False
+        else:
+            # self.results = self.data
+            return True
+
+
+class SnsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SNS
+        fields = '__all__'
+
+
+# [AccountGroup] Serializer
+class AccountGroupSerializerForCreate(BaseSerializer):
+    mwodeola_user = serializers.PrimaryKeyRelatedField(queryset=MwodeolaUser.objects.all(), write_only=True)
+    id = serializers.UUIDField(read_only=True)
+    sns = serializers.PrimaryKeyRelatedField(queryset=SNS.objects.all(), allow_null=True, default=None)
+    group_name = serializers.CharField(max_length=30, default=None)
+    app_package_name = serializers.CharField(max_length=100, default=None)
+    web_url = serializers.CharField(max_length=100, default=None)
+    icon_type = serializers.ChoiceField(choices=ICON_TYPE, default=0)
+    icon_image_url = serializers.URLField(max_length=500, allow_null=True, default=None)
+    is_favorite = serializers.BooleanField(default=False)
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            return False
+        sns = self.validated_data['sns']
+        group_name = self.validated_data['group_name']
+
+        if sns is None and group_name is None:
+            self.err_messages['message'] = 'Field error'
+            self.err_messages['code'] = 'field_error'
+            self.err_messages['detail'] = 'group_name is required field'
+            return False
+        return True
+
+    def create(self, validated_data):
+        kwargs = dict()
+
+        for key in validated_data:
+            kwargs[key] = validated_data.get(key, None)
+
+        sns = validated_data['sns']
+
+        if sns is not None:
+            kwargs['group_name'] = sns.name
+            kwargs['app_package_name'] = sns.app_package_name
+            kwargs['web_url'] = sns.web_url
+            kwargs['icon_type'] = 3
+            kwargs.pop('icon_image_url')
+
+        try:
+            new_group = AccountGroup.objects.create(**kwargs)
+        except ValueError as e:
+            raise exceptions.FieldException(group_name=e.args)
+        except IntegrityError as e:
+            raise exceptions.DuplicatedException(group_Name=str(e))
+
+        return new_group
+
+    def update(self, instance, validated_data):
+        pass
+
+
+# [AccountGroup] Serializer
+class AccountGroupSerializerForRead(BaseModelSerializer):
+    class Meta:
+        model = AccountGroup
+        exclude = ['mwodeola_user']
+
+
+# [AccountGroup] Serializer
+class AccountGroupSerializerForUpdate(BaseModelSerializer):
+    class Meta:
+        model = AccountGroup
+        exclude = ['sns', 'icon_image_url']
+
+
+# [AccountDetail] Serializer
+class AccountDetailSerializer(BaseModelSerializer):
+    class Meta:
+        model = AccountDetail
+        exclude = ['group']
+
+    def create(self, validated_data):
+        validated_data['user_password'] = AESCipher().encrypt(validated_data['user_password'])
+        try:
+            validated_data['user_password_pin'] = AESCipher().encrypt(validated_data['user_password_pin'])
+        except KeyError:
+            pass
+        try:
+            validated_data['user_password_pattern'] = AESCipher().encrypt(validated_data['user_password_pattern'])
+        except KeyError:
+            pass
+
+        new_detail = super().create(validated_data)
+        Account.objects.create(
+            own_group=new_detail.group,
+            detail=new_detail
+        )
+        return new_detail
+
+    def update(self, instance, validated_data):
+        validated_data['user_password'] = CIPHER.encrypt(validated_data['user_password'])
+        try:
+            validated_data['user_password_pin'] = CIPHER.encrypt(validated_data['user_password_pin'])
+        except KeyError:
+            pass
+        try:
+            validated_data['user_password_pattern'] = CIPHER.encrypt(validated_data['user_password_pattern'])
+        except KeyError:
+            pass
+        return super().update(instance, validated_data)
+
+    @property
+    def data(self):
+        data = super().data
+        data['user_password'] = AESCipher().decrypt(data['user_password'])
+        data['user_password_pin'] = AESCipher().decrypt(data['user_password_pin'])
+        data['user_password_pattern'] = AESCipher().decrypt(data['user_password_pattern'])
+        return ReturnDict(data, serializer=self)
+
+
+# [AccountDetail] Serializer
+class AccountDetailSerializerForRead(BaseModelSerializer):
+    class Meta:
+        model = AccountDetail
+        exclude = ['group']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['user_password'] = AESCipher().decrypt(instance.user_password)
+        ret['user_password_pin'] = AESCipher().decrypt(instance.user_password_pin)
+        ret['user_password_pattern'] = AESCipher().decrypt(instance.user_password_pattern)
+        return ret
+
+
+# [AccountDetail] Serializer
+class AccountDetailSerializerSimple(BaseModelSerializer):
+    class Meta:
+        model = AccountDetail
+        fields = ['id', 'user_id']
+
+
+# [Account] Serializer
+class AccountSerializerForRead(BaseModelSerializer):
+    account_id = serializers.UUIDField(source='id', read_only=True)
+
+    class Meta:
+        model = Account
+        fields = ['account_id', 'created_at', 'own_group', 'sns_group', 'detail']
+
+    def to_representation(self, instance):
+        self.fields['own_group'] = AccountGroupSerializerForRead()
+        self.fields['sns_group'] = AccountGroupSerializerForRead()
+        self.fields['detail'] = AccountDetailSerializerForRead()
+        return super().to_representation(instance)
+
+
+# [Account] Serializer
+class AccountSerializerSimpleForRead(BaseModelSerializer):
+    account_id = serializers.UUIDField(source='id', read_only=True)
+
+    class Meta:
+        model = Account
+        fields = ['account_id', 'created_at', 'sns_group', 'detail']
+
+    def to_representation(self, instance):
+        self.fields['sns_group'] = AccountGroupSerializerForRead()
+        self.fields['detail'] = AccountDetailSerializerSimple()
+        return super().to_representation(instance)
+
+
+# [Account] Serializer
+class AccountSerializerSimpleForSearch(BaseModelSerializer):
+    account_id = serializers.UUIDField(source='id', read_only=True)
+
+    class Meta:
+        model = Account
+        fields = ['account_id', 'created_at', 'own_group', 'detail']
+
+    def to_representation(self, instance):
+        self.fields['own_group'] = AccountGroupSerializerForRead()
+        self.fields['detail'] = AccountDetailSerializerSimple()
+        return super().to_representation(instance)
+
+
+# [AccountDetail] Serializer
+# class AccountDetailSerializerSimple(BaseModelSerializer):
+#     sns = serializers.SerializerMethodField()
+#     group_icon_type = serializers.SerializerMethodField()
+#     group_package_name = serializers.SerializerMethodField()
+#     group_icon_image_url = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = AccountDetail
+#         fields = [
+#             'id',
+#             'user_id',
+#             'sns',
+#             'group_icon_type',
+#             'group_package_name',
+#             'group_icon_image_url',
+#         ]
+#
+#     def get_sns(self, obj):
+#         sns = obj.group.sns
+#         print(f'get_sns(): {sns}')
+#         if sns is None:
+#             return None
+#         return sns.id
+#
+#     def get_group_icon_type(self, obj):
+#         return obj.group.icon_type
+#
+#     def get_group_package_name(self, obj):
+#         # return 'package'
+#         return obj.group.app_package_name
+#
+#     def get_group_icon_image_url(self, obj):
+#         # return 'url'
+#         return obj.group.icon_image_url
+

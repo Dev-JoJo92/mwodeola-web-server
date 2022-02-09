@@ -64,7 +64,7 @@ class AccountDetail(models.Model):
     group = models.ForeignKey(AccountGroup, on_delete=models.CASCADE, related_name='account_group')
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user_id = models.CharField(max_length=50, null=False, blank=False)
+    user_id = models.CharField(max_length=100, null=False, blank=False)
     user_password = models.CharField(max_length=255, null=False, blank=False)
     user_password_pin = models.CharField(max_length=128, null=True, blank=False, default=None)
     user_password_pattern = models.CharField(max_length=128, null=True, blank=False, default=None)

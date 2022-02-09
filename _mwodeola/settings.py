@@ -90,7 +90,10 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'mwodeola_users.auth.authentications.JWTAuthentication',
         # 'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    # 'EXCEPTION_HANDLER': (
+    #     ''
+    # )
 }
 
 SIMPLE_JWT = {

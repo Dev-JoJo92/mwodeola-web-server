@@ -1,19 +1,23 @@
 from django.db import IntegrityError
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.utils.translation import gettext_lazy as _
-from rest_framework import exceptions, serializers, status
+from rest_framework import serializers, status
 from rest_framework.fields import empty
 
+from _mwodeola import exceptions
 from _mwodeola.cipher import AESCipher
 from mwodeola_users.models import MwodeolaUser
 from .models import SNS, AccountGroup, AccountDetail, Account
-from .serializers_base import (
+from .models_serializers import (
     AccountGroupSerializerForRead,
     AccountGroupSerializerForCreate,
     AccountGroupSerializerForUpdate,
     AccountDetailSerializer,
+    AccountDetailSerializerForRead,
     AccountDetailSerializerSimple,
     AccountSerializerForRead,
+    AccountSerializerSimpleForRead,
+    AccountSerializerSimpleForSearch,
 )
 
 
@@ -32,12 +36,12 @@ class BaseSerializer(serializers.Serializer):
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):
-            self.err_messages['detail'] = 'Field error'
+            self.err_messages['message'] = 'Field error'
             self.err_messages['code'] = 'field_error'
-            self.err_messages['errors'] = self.errors
+            self.err_messages['detail'] = self.errors
             return False
         if self.user is None:
-            self.err_messages['detail'] = 'Server Error (500)'
+            self.err_messages['message'] = 'Server Error (500)'
             self.err_messages['code'] = 'server_error'
             self.err_status = status.HTTP_500_INTERNAL_SERVER_ERROR
             return False
@@ -56,9 +60,9 @@ class BaseNestedSerializer:
 
     def __init__(self, user=None, instance=None, data=empty, **kwargs):
         if data.get('account_group', None) is None:
-            raise exceptions.ParseError('account_group is required')
+            raise exceptions.FieldException(account_group='required field')
         if data.get('detail', None) is None:
-            raise exceptions.ParseError('detail is required')
+            raise exceptions.FieldException(detail='required field')
 
         data['account_group']['mwodeola_user'] = user.id
 
@@ -69,21 +73,20 @@ class BaseNestedSerializer:
     def is_valid(self) -> bool:
         valid = True
         if not self.account_group_serializer.is_valid():
-            self.err_messages['detail'] = 'Field error'
-            self.err_messages['code'] = 'field_error'
-            self.err_messages['account_group_errors'] = self.account_group_serializer.errors
+            self.err_messages['account_group'] = self.account_group_serializer.err_messages
             self.err_status = status.HTTP_400_BAD_REQUEST
             valid = False
         if not self.account_detail_serializer.is_valid():
-            self.err_messages['detail'] = 'Field error'
-            self.err_messages['code'] = 'field_error'
-            self.err_messages['account_detail_errors'] = self.account_detail_serializer.errors
+            self.err_messages['detail'] = self.account_detail_serializer.err_messages
             self.err_status = status.HTTP_400_BAD_REQUEST
             valid = False
         return valid
 
     def save(self):
-        self.account_group_serializer.save()
+        try:
+            self.account_group_serializer.save()
+        except IntegrityError as e:
+            raise exceptions.DuplicatedException(group_name=str(e))
         self.account_detail_serializer.save()
         self.results['account_group'] = self.account_group_serializer.data
         self.results['detail'] = self.account_detail_serializer.data
@@ -94,7 +97,13 @@ class AccountGroup_GET_Serializer(AccountGroupSerializerForRead):
 
 
 class AccountGroup_PUT_Serializer(AccountGroupSerializerForUpdate):
-    pass
+
+    def save(self, **kwargs):
+        try:
+            ret = super().save(**kwargs)
+        except IntegrityError as e:
+            raise exceptions.DuplicatedException(group_name=str(e))
+        return ret
 
 
 class AccountGroup_DELETE_Serializer(BaseSerializer):
@@ -107,9 +116,7 @@ class AccountGroup_DELETE_Serializer(BaseSerializer):
         account_group = self.validated_data['account_group_id']
 
         if account_group.mwodeola_user.id != self.user.id:
-            self.err_messages['error'] = 'Forbidden (403)'
-            self.err_status = status.HTTP_403_FORBIDDEN
-            return False
+            raise exceptions.NotOwnerDataException()
 
         return True
 
@@ -128,9 +135,7 @@ class AccountGroupFavorite_PUT_Serializer(BaseSerializer):
         account_group = self.validated_data['account_group_id']
 
         if account_group.mwodeola_user.id != self.user.id:
-            self.err_messages['error'] = 'Forbidden (403)'
-            self.err_status = status.HTTP_403_FORBIDDEN
-            return False
+            raise exceptions.NotOwnerDataException()
 
         return True
 
@@ -143,27 +148,26 @@ class AccountGroupFavorite_PUT_Serializer(BaseSerializer):
 
 
 class AccountGroupDetail_GET_Serializer(BaseSerializer):
-    account_detail_id = serializers.PrimaryKeyRelatedField(queryset=AccountDetail.objects.all())
+    account_id = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):
             return False
 
-        account_detail = self.validated_data['account_detail_id']
+        account = self.validated_data['account_id']
 
-        if account_detail.group.mwodeola_user.id != self.user.id:
-            self.err_messages['error'] = 'Forbidden (403)'
-            self.err_status = status.HTTP_403_FORBIDDEN
-            return False
+        if account.own_group.mwodeola_user.id != self.user.id:
+            raise exceptions.NotOwnerDataException()
 
-        account_detail.views += 1
-        account_detail.save()
+        # SNS 그룹에 연결된 detail 의 요청은 views 를 올리지 않음.
+        if account.sns_group is None:
+            account.detail.views += 1
+            account.detail.save()
 
-        group_serializer = AccountGroupSerializerForRead(account_detail.group)
-        detail_serializer = AccountDetailSerializer(account_detail)
+        serializer = AccountSerializerForRead(account)
 
-        self.results['account_group'] = group_serializer.data
-        self.results['detail'] = detail_serializer.data
+        self.results = serializer.data
+
         return True
 
 
@@ -173,14 +177,14 @@ class AccountGroupDetail_POST_Serializer(BaseNestedSerializer):
         account_group_data = data['account_group']
         account_detail_data = data['detail']
 
-        self.account_group_serializer = AccountGroupSerializerForCreate(user=user, data=account_group_data)
+        self.account_group_serializer = AccountGroupSerializerForCreate(data=account_group_data)
         self.account_detail_serializer = AccountDetailSerializer(data=account_detail_data)
 
     def save(self):
         try:
             new_group = self.account_group_serializer.save()
         except IntegrityError as e:
-            raise exceptions.ValidationError(e.args[0])
+            raise exceptions.DuplicatedException(group_name=str(e))
 
         self.account_detail_serializer.save(group=new_group)
         self.results['account_group'] = self.account_group_serializer.data
@@ -195,23 +199,74 @@ class AccountGroupDetail_PUT_Serializer(BaseNestedSerializer):
 
         try:
             account_group_id = account_group_data['id']
-            qs_account_group = AccountGroup.objects.get(id=account_group_id)
+            account_group = AccountGroup.objects.get(id=account_group_id)
         except KeyError:
-            raise exceptions.ParseError("account_group's id is required fields.")
+            raise exceptions.FieldException(id='required field')
+        except ValidationError as e:
+            raise exceptions.FieldException(id=str(e))
+
+        if account_group.mwodeola_user.id != user.id:
+            raise exceptions.NotOwnerDataException()
 
         try:
             account_detail_id = account_detail_data['id']
-            qs_account_detail = AccountDetail.objects.get(id=account_detail_id)
+            account_detail = AccountDetail.objects.get(id=account_detail_id)
         except KeyError:
-            raise exceptions.ParseError("detail's id is required fields.")
+            raise exceptions.FieldException(id='required field')
+        except ValidationError as e:
+            raise exceptions.FieldException(id=str(e))
+
+        if account_detail.group.mwodeola_user.id != user.id:
+            raise exceptions.NotOwnerDataException()
 
         self.account_group_serializer = AccountGroupSerializerForUpdate(
-            qs_account_group, data=account_group_data)
+            account_group, data=account_group_data)
         self.account_detail_serializer = AccountDetailSerializer(
-            qs_account_detail, data=account_detail_data)
+            account_detail, data=account_detail_data)
 
 
 class AccountGroupSnsDetail_POST_Serializer(BaseSerializer):
+    account_group = serializers.DictField()
+    sns_detail_id = serializers.PrimaryKeyRelatedField(queryset=AccountDetail.objects.all())
+
+    def __init__(self, user=None, instance=None, data=empty, **kwargs):
+        super().__init__(user, instance, data, **kwargs)
+        self.serializer = None
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            return False
+
+        account_group_dict = self.validated_data['account_group']
+        account_group_dict['mwodeola_user'] = self.user.id
+
+        self.serializer = AccountGroupSerializerForCreate(data=account_group_dict)
+
+        if not self.serializer.is_valid():
+            self.err_messages['message'] = 'Field error'
+            self.err_messages['code'] = 'field_error'
+            self.err_messages['detail'] = self.serializer.err_messages
+            return False
+
+        return True
+
+    def save(self, **kwargs):
+        new_group = self.serializer.save()
+        sns_detail = self.validated_data['sns_detail_id']
+
+        Account.objects.create(
+            own_group=new_group,
+            sns_group=sns_detail.group,
+            detail=sns_detail
+        )
+
+        return {
+            'account_group': self.serializer.data,
+            'detail': AccountDetailSerializerForRead(sns_detail).data
+        }
+
+
+class AccountGroupSnsDetail_PUT_Serializer(BaseSerializer):
     account_group_id = serializers.PrimaryKeyRelatedField(queryset=AccountGroup.objects.all())
     sns_detail_id = serializers.PrimaryKeyRelatedField(queryset=AccountDetail.objects.all())
 
@@ -222,18 +277,18 @@ class AccountGroupSnsDetail_POST_Serializer(BaseSerializer):
         account_group = self.validated_data['account_group_id']
         sns_detail = self.validated_data['sns_detail_id']
 
-        if account_group.mwodeola_user.id != self.user.id:
-            self.err_messages['error'] = 'Forbidden (403)'
-            self.err_status = status.HTTP_403_FORBIDDEN
-            return False
+        if account_group.mwodeola_user.id != self.user.id or sns_detail.group.mwodeola_user.id != self.user.id:
+            raise exceptions.NotOwnerDataException()
 
         if account_group.sns is not None:
-            self.err_messages['error'] = 'account_group must be no sns'
+            self.err_messages['message'] = 'account_group must be no sns'
+            self.err_messages['code'] = 'sns_error_1'
             self.err_status = status.HTTP_400_BAD_REQUEST
             return False
 
         if sns_detail.group.sns is None:
-            self.err_messages['error'] = 'sns_detail must be sns'
+            self.err_messages['message'] = 'sns_detail must be sns'
+            self.err_messages['code'] = 'sns_error_2'
             self.err_status = status.HTTP_400_BAD_REQUEST
             return False
 
@@ -250,50 +305,27 @@ class AccountGroupSnsDetail_POST_Serializer(BaseSerializer):
                 detail=sns_detail
             )
         except IntegrityError as e:
-            raise exceptions.ValidationError(e.args[0])
+            raise exceptions.DuplicatedException(sns_detail_id=str(e))
 
         return new_account
 
 
 class AccountGroupSnsDetail_DELETE_Serializer(BaseSerializer):
-    account_group_id = serializers.PrimaryKeyRelatedField(queryset=AccountGroup.objects.all())
-    sns_detail_id = serializers.PrimaryKeyRelatedField(queryset=AccountDetail.objects.all())
+    account_id = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):
             return False
 
-        account_group = self.validated_data['account_group_id']
-        sns_detail = self.validated_data['sns_detail_id']
+        account = self.validated_data['account_id']
 
-        if account_group.mwodeola_user.id != self.user.id:
-            self.err_messages['error'] = 'Forbidden (403)'
-            self.err_status = status.HTTP_403_FORBIDDEN
-            return False
+        if account.own_group.mwodeola_user.id != self.user.id:
+            raise exceptions.NotOwnerDataException()
 
-        if account_group.sns is not None:
-            self.err_messages['error'] = 'account_group must be no sns'
-            self.err_status = status.HTTP_400_BAD_REQUEST
-            return False
-
-        if sns_detail.group.sns is None:
-            self.err_messages['error'] = 'sns_detail must be sns'
-            self.err_status = status.HTTP_400_BAD_REQUEST
-            return False
-
-        accounts = Account.objects.filter(own_group=account_group)
-
-        try:
-            target_account = accounts.get(detail=sns_detail)
-        except ObjectDoesNotExist as e:
-            self.err_messages['error'] = e.args[0]
-            self.err_status = status.HTTP_400_BAD_REQUEST
-            return False
-
-        if len(accounts) == 1:
-            self.instance = account_group
+        if Account.objects.filter(own_group=account.own_group).count() == 1:
+            self.instance = account.own_group
         else:
-            self.instance = target_account
+            self.instance = account
 
         return True
 
@@ -311,21 +343,16 @@ class AccountGroupDetailAllSerializer(BaseSerializer):
         account_group = self.validated_data['account_group_id']
 
         if account_group.mwodeola_user.id != self.user.id:
-            self.err_messages['error'] = 'Forbidden (403)'
-            self.err_status = status.HTTP_403_FORBIDDEN
-            return False
+            raise exceptions.NotOwnerDataException()
 
         accounts = Account.objects.filter(own_group=account_group)
 
-        details = []
-        for account in accounts:
-            details.append(account.detail)
+        group_serializer = AccountGroupSerializerForRead(account_group)
+        account_serializer = AccountSerializerSimpleForRead(accounts, many=True)
 
-        serializer = AccountDetailSerializerSimple(details, many=True)
+        self.results['own_group'] = group_serializer.data
+        self.results['accounts'] = account_serializer.data
 
-        self.results['group_id'] = account_group.id
-        self.results['group_name'] = account_group.group_name
-        self.results['details'] = serializer.data
         return True
 
 
@@ -345,9 +372,7 @@ class AccountDetail_DELETE_Serializer(BaseSerializer):
         account_detail = self.validated_data['account_detail_id']
 
         if account_detail.group.mwodeola_user.id != self.user.id:
-            self.err_messages['error'] = 'Forbidden (403)'
-            self.err_status = status.HTTP_403_FORBIDDEN
-            return False
+            raise exceptions.NotOwnerDataException()
 
         return True
 
@@ -362,10 +387,44 @@ class AccountDetail_DELETE_Serializer(BaseSerializer):
             account_detail.delete()
 
 
-class AccountSearchGroupSerializer(AccountGroupSerializerForRead):
-    pass
+class AccountSearchGroupSerializer(BaseSerializer):
+    group_name = serializers.CharField(max_length=30)
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            return False
+
+        group_name = self.validated_data['group_name']
+
+        groups = AccountGroup.objects\
+            .filter(mwodeola_user=self.user)\
+            .filter(group_name__contains=group_name)
+
+        serializer = AccountGroupSerializerForRead(groups, many=True)
+
+        self.results = serializer.data
+        return True
 
 
-class AccountSearchDetailSerializer(AccountDetailSerializerSimple):
-    pass
+class AccountSearchDetailSerializer(BaseSerializer):
+    user_id = serializers.CharField(max_length=100)
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            return False
+
+        user_id = self.validated_data['user_id']
+
+        details = AccountDetail.objects.filter(user_id__contains=user_id)
+        detail_ids = []
+        for detail in details:
+            if detail.group.mwodeola_user.id == self.user.id:
+                detail_ids.append(detail.id)
+
+        accounts = Account.objects.filter(detail__in=detail_ids)
+
+        serializer = AccountSerializerSimpleForSearch(accounts, many=True)
+
+        self.results = serializer.data
+        return True
 
