@@ -151,21 +151,21 @@ class AccountDetailSerializer(BaseModelSerializer):
         validated_data['user_password_pattern'] = cipher.encrypt(validated_data.get('user_password_pattern', None))
         return super().update(instance, validated_data)
 
-    @property
-    def data(self):
+    def to_representation(self, instance):
         cipher = AESCipher()
-        data = super().data
-        data['user_password'] = cipher.decrypt(data['user_password'])
-        data['user_password_pin'] = cipher.decrypt(data['user_password_pin'])
-        data['user_password_pattern'] = cipher.decrypt(data['user_password_pattern'])
-        return ReturnDict(data, serializer=self)
+        result = super().to_representation(instance)
+        result['group'] = instance.group.id
+        result['user_password'] = cipher.decrypt(instance.user_password)
+        result['user_password_pin'] = cipher.decrypt(instance.user_password_pin)
+        result['user_password_pattern'] = cipher.decrypt(instance.user_password_pattern)
+        return result
 
 
 # [AccountDetail] Serializer
 class AccountDetailSerializerForRead(BaseModelSerializer):
     class Meta:
         model = AccountDetail
-        exclude = ['group']
+        fields = '__all__'
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)

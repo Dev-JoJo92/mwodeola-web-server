@@ -62,6 +62,8 @@ class AccountGroup_PUT_Serializer(AccountGroupSerializerForUpdate):
             ret = super().save(**kwargs)
         except IntegrityError as e:
             raise exceptions.DuplicatedException(group_name=str(e))
+
+        self.results = AccountGroupSerializerForRead(ret).data
         return ret
 
 
@@ -172,7 +174,7 @@ class AccountGroupDetail_POST_Serializer(BaseSerializer):
             'account_id': new_account.id,
             'created_at': new_account.created_at,
             'own_group': self.group_serializer.data,
-            'sns_group': new_account.sns_group,
+            'sns_group': None,
             'detail': self.detail_serializer.data
         }
 

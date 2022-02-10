@@ -129,7 +129,7 @@ class AccountDetailView(BaseAPIView):
 class AccountSearchGroupView(BaseAPIView):
 
     def get(self, request):
-        group_name = request.GET.get('name', None)
+        group_name = request.GET.get('group_name', None)
         data = {'group_name': group_name}
         self.serializer = serializers.AccountSearchGroupSerializer(user=request.user, data=data)
         return super().get(request)
