@@ -47,9 +47,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     ".mwodeola.shop",  # 가비아에서 대여한 도메인 네임
     ".ap-northeast-2.compute.amazonaws.com",
-    "172.31.47.248",
-    "52.79.191.108",
-    "localhost",
+    # "localhost",
 ]
 
 
@@ -97,7 +95,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=5),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=10),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
