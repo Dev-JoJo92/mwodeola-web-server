@@ -166,16 +166,15 @@ class AccountGroupDetail_POST_Serializer(BaseSerializer):
 
     def save(self, **kwargs):
         new_group = self.group_serializer.save()
-        self.detail_serializer.save(group=new_group)
-
+        new_detail = self.detail_serializer.save(group=new_group)
         new_account = Account.objects.get(own_group=new_group)
 
         self.results = {
             'account_id': new_account.id,
             'created_at': new_account.created_at,
-            'own_group': self.group_serializer.data,
+            'own_group': AccountGroupSerializerForRead(new_group).data,
             'sns_group': None,
-            'detail': self.detail_serializer.data
+            'detail': AccountDetailSerializerForRead(new_detail).data
         }
 
         return self.results
@@ -239,15 +238,14 @@ class AccountGroupDetail_PUT_Serializer(BaseSerializer):
     def save(self, **kwargs):
         group = self.group_serializer.save()
         detail = self.detail_serializer.save()
-
         account = Account.objects.filter(own_group=group).filter(detail=detail)
 
         self.results = {
             'account_id': account[0].id,
             'created_at': account[0].created_at,
-            'own_group': self.group_serializer.data,
+            'own_group': AccountGroupSerializerForRead(group).data,
             'sns_group': account[0].sns_group,
-            'detail': self.detail_serializer.data
+            'detail': AccountDetailSerializerForRead(detail).data
         }
 
         return self.results
@@ -297,13 +295,14 @@ class AccountGroupSnsDetail_POST_Serializer(BaseSerializer):
             detail=sns_detail
         )
 
+        own_group_dict = AccountGroupSerializerForRead(new_group).data
         sns_group_dict = AccountGroupSerializerForRead(sns_detail.group).data
         sns_detail_dict = AccountDetailSerializerForRead(sns_detail).data
 
         self.results = {
             'account_id': new_account.id,
             'created_at': new_account.created_at,
-            'own_group': self.serializer.data,
+            'own_group': own_group_dict,
             'sns_group': sns_group_dict,
             'detail': sns_detail_dict
         }

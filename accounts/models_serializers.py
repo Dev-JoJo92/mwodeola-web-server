@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 from django.db import IntegrityError
+from django.db.models import Sum
 from rest_framework import serializers, status
 from rest_framework.utils.serializer_helpers import ReturnDict, BindingDict
 
@@ -122,6 +123,15 @@ class AccountGroupSerializerForRead(BaseModelSerializer):
     class Meta:
         model = AccountGroup
         exclude = ['mwodeola_user']
+
+    def to_representation(self, instance):
+        views_sum = AccountDetail.objects.filter(group=instance.id).aggregate(Sum('views'))
+        result = super().to_representation(instance)
+        if views_sum['views__sum'] is None:
+            result['total_views'] = 0
+        else:
+            result['total_views'] = views_sum['views__sum']
+        return result
 
 
 # [AccountDetail] Serializer
