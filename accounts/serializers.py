@@ -87,8 +87,6 @@ class AccountGroup_DELETE_Serializer(BaseSerializer):
 
     def delete(self):
         groups = self.validated_data['account_group_ids']
-        print(f'groups={groups}')
-        print(f'groups.len={len(groups)}')
         for group in groups:
             group.delete()
 
