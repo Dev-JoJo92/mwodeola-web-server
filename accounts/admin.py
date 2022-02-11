@@ -8,7 +8,7 @@ class SNS_Admin(admin.ModelAdmin):
 
 
 class AccountGroupAdmin(admin.ModelAdmin):
-    list_display = ('mwodeola_user', 'sns', 'group_name',
+    list_display = ('id', 'mwodeola_user', 'sns', 'group_name',
                     'app_package_name', 'web_url', 'icon_type', 'icon_image_url', 'is_favorite',
                     'created_at')
     list_filter = ['created_at']
@@ -18,7 +18,7 @@ class AccountGroupAdmin(admin.ModelAdmin):
 
 
 class AccountDetailAdmin(admin.ModelAdmin):
-    list_display = ('mwodeola_user', 'group', 'user_id',
+    list_display = ('id', 'mwodeola_user', 'group', 'user_id',
                     'user_password', 'user_password_pin', 'user_password_pattern',
                     'memo', 'views')
     search_fields = ['group']
@@ -30,7 +30,7 @@ class AccountDetailAdmin(admin.ModelAdmin):
 
 
 class AccountAdmin(admin.ModelAdmin):
-    list_display = ('user', 'own_group', 'sns_group', 'detail', 'created_at')
+    list_display = ('id', 'user', 'own_group', 'sns_group', 'detail', 'created_at')
     search_fields = ['own_group']
     readonly_fields = ('id', 'own_group', 'sns_group', 'detail', 'created_at')
     ordering = ('created_at',)

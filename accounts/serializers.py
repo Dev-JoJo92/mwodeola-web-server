@@ -68,21 +68,29 @@ class AccountGroup_PUT_Serializer(AccountGroupSerializerForUpdate):
 
 
 class AccountGroup_DELETE_Serializer(BaseSerializer):
-    account_group_id = serializers.PrimaryKeyRelatedField(queryset=AccountGroup.objects.all())
+    account_group_ids = serializers.ListField(
+        child=serializers.PrimaryKeyRelatedField(queryset=AccountGroup.objects.all()),
+        allow_empty=True
+    )
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):
             return False
 
-        account_group = self.validated_data['account_group_id']
+        groups = self.validated_data['account_group_ids']
 
-        if account_group.mwodeola_user.id != self.user.id:
-            raise exceptions.NotOwnerDataException()
+        for group in groups:
+            if group.mwodeola_user.id != self.user.id:
+                raise exceptions.NotOwnerDataException()
 
         return True
 
     def delete(self):
-        self.validated_data['account_group_id'].delete()
+        groups = self.validated_data['account_group_ids']
+        print(f'groups={groups}')
+        print(f'groups.len={len(groups)}')
+        for group in groups:
+            group.delete()
 
 
 class AccountGroupFavorite_PUT_Serializer(BaseSerializer):
