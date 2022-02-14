@@ -155,6 +155,11 @@ class AccountGroupDetail_POST_Serializer(BaseSerializer):
         own_group = self.validated_data['own_group']
         own_group['mwodeola_user'] = self.user.id
 
+        # Android Retrofit2 의 gson 변환시 Int 타입의 null 값은 0으로 대입 되기 때문.
+        sns = own_group.get('sns', None)
+        if sns == 0:
+            own_group['sns'] = None
+
         detail = self.validated_data['detail']
 
         self.group_serializer = AccountGroupSerializerForCreate(data=own_group)
