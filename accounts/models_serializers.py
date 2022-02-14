@@ -125,8 +125,12 @@ class AccountGroupSerializerForRead(BaseModelSerializer):
         exclude = ['mwodeola_user']
 
     def to_representation(self, instance):
-        views_sum = AccountDetail.objects.filter(group=instance.id).aggregate(Sum('views'))
         result = super().to_representation(instance)
+
+        detail_count = Account.objects.filter(own_group=instance.id).count()
+        result['detail_count'] = detail_count
+
+        views_sum = AccountDetail.objects.filter(group=instance.id).aggregate(Sum('views'))
         if views_sum['views__sum'] is None:
             result['total_views'] = 0
         else:

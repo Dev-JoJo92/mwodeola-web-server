@@ -12,7 +12,7 @@
     "model": "accounts.sns",
     "fields": {
       "id": 2,
-      "name": "카카오",
+      "name": "카카오톡",
       "app_package_name": "com.kakao.talk",
       "web_url": "https://www.kakaocorp.com/"
     }
