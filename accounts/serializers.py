@@ -414,11 +414,8 @@ class AccountGroupDetailAllSerializer(BaseSerializer):
 
         accounts = Account.objects.filter(own_group=account_group)
 
-        group_serializer = AccountGroupSerializerForRead(account_group)
-        account_serializer = AccountSerializerSimpleForRead(accounts, many=True)
-
-        self.results['own_group'] = group_serializer.data
-        self.results['accounts'] = account_serializer.data
+        serializer = AccountSerializerForRead(accounts, many=True)
+        self.results = serializer.data
 
         return True
 
