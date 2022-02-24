@@ -143,3 +143,11 @@ class AccountSearchDetailView(BaseAPIView):
         self.serializer = serializers.AccountSearchDetailSerializer(user=request.user, data=data)
         return super().get(request)
 
+
+class AccountForAutofillServiceView(BaseAPIView):
+
+    def get(self, request):
+        app_package_name = request.GET.get('app_package_name', None)
+        data = {'app_package_name': app_package_name}
+        self.serializer = serializers.AccountForAutofillServiceSerializer(user=request.user, data=data)
+        return super().get(request)

@@ -32,4 +32,7 @@ urlpatterns = [
     path('account/search/group', views.AccountSearchGroupView.as_view()),
     # GET: account/search/group?user_id=
     path('account/search/detail', views.AccountSearchDetailView.as_view()),
+
+    # GET: account/for_autofill_service?app_package_name=
+    path('account/for_autofill_service', views.AccountForAutofillServiceView.as_view()),
 ]

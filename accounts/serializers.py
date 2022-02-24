@@ -1,4 +1,5 @@
 from django.db import IntegrityError
+from django.db.models import Q
 from django.forms.models import model_to_dict
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -532,3 +533,30 @@ class AccountSearchDetailSerializer(BaseSerializer):
         self.results = serializer.data
         return True
 
+
+class AccountForAutofillServiceSerializer(BaseSerializer):
+    app_package_name = serializers.CharField(max_length=100)
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            return False
+
+        app_package_name = self.validated_data['app_package_name']
+
+        q1 = Q(mwodeola_user=self.user)
+        q1.add(Q(app_package_name=app_package_name), q1.AND)
+
+        groups = AccountGroup.objects.filter(q1)
+        group_ids = []
+        for group in groups:
+            group_ids.append(group.id)
+
+        q2 = Q(own_group__in=group_ids)
+        q2.add(Q(sns_group=None), q2.AND)
+
+        accounts = Account.objects.filter(q2)
+
+        serializer = AccountSerializerForRead(accounts, many=True)
+
+        self.results = serializer.data
+        return True
