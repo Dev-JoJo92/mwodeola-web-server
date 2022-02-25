@@ -1,3 +1,4 @@
+import datetime
 from django.db import IntegrityError
 from django.db.models import Q
 from django.forms.models import model_to_dict
@@ -7,6 +8,7 @@ from rest_framework import serializers, status
 from rest_framework.fields import empty
 
 from _mwodeola import exceptions
+from _mwodeola.cipher import AESCipher
 from mwodeola_users.models import MwodeolaUser
 from .models import SNS, AccountGroup, AccountDetail, Account
 from .models_serializers import (
@@ -534,7 +536,7 @@ class AccountSearchDetailSerializer(BaseSerializer):
         return True
 
 
-class AccountForAutofillServiceSerializer(BaseSerializer):
+class GET_AccountForAutofillServiceSerializer(BaseSerializer):
     app_package_name = serializers.CharField(max_length=100)
 
     def is_valid(self, raise_exception=False):
@@ -560,3 +562,123 @@ class AccountForAutofillServiceSerializer(BaseSerializer):
 
         self.results = serializer.data
         return True
+
+
+class POST_AccountForAutofillServiceSerializer(BaseSerializer):
+    app_package_name = serializers.CharField(max_length=100, allow_null=False, allow_blank=False)
+    group_name = serializers.CharField(max_length=30, allow_null=False, allow_blank=False)
+    user_id = serializers.CharField(max_length=100, allow_null=False, allow_blank=False)
+    user_password = serializers.CharField(max_length=255, allow_null=False, allow_blank=False)
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            return False
+
+        app_package_name = self.validated_data['app_package_name']
+        group_name = self.validated_data['group_name']
+        user_id = self.validated_data['user_id']
+        user_password = self.validated_data['user_password']
+
+        q1 = Q(mwodeola_user=self.user)
+        q1.add(Q(app_package_name=app_package_name), q1.AND)
+
+        try:
+            group = AccountGroup.objects.get(q1)
+        except ObjectDoesNotExist:
+            group = None
+
+        # app_package_name 의 account_group 존재(x): new_account_created
+        if group is None:
+            try:
+                sns = SNS.objects.get(app_package_name=app_package_name)
+            except ObjectDoesNotExist:
+                sns = None
+
+            if sns is None:
+                new_group = self._create_group(self.user, group_name, app_package_name)
+            else:
+                new_group = self._create_sns_group(self.user, sns)
+
+            self._create_or_update_detail(new_group, user_id, user_password)
+            self.results['code'] = 'new_account_created'
+
+        # app_package_name 의 account_group 존재(o): detail_created or detail_updated
+        else:
+            is_created = self._create_or_update_detail(group, user_id, user_password)
+            if is_created:
+                self.results['code'] = 'detail_created'
+            else:
+                self.results['code'] = 'detail_updated'
+
+        return True
+
+    def save(self, **kwargs):
+        return {}
+
+    @classmethod
+    def _create_group(cls, user, group_name, app_package_name) -> AccountGroup:
+        try:
+            new_group = AccountGroup.objects.create(
+                mwodeola_user=user,
+                sns=None,
+                group_name=group_name,
+                app_package_name=app_package_name,
+                icon_type=2,
+            )
+
+            return new_group
+        except IntegrityError as e:
+            raise exceptions.DuplicatedException(group_name=str(e))
+
+    @classmethod
+    def _create_sns_group(cls, user, sns) -> AccountGroup:
+        try:
+            new_group = AccountGroup.objects.create(
+                mwodeola_user=user,
+                sns=sns,
+                group_name=sns.name,
+                app_package_name=sns.app_package_name,
+                web_url=sns.web_url,
+                icon_type=3,
+            )
+
+            return new_group
+        except IntegrityError as e:
+            raise exceptions.DuplicatedException(group_name=str(e))
+
+    @classmethod
+    def _create_or_update_detail(cls, group, user_id, user_password) -> bool:
+        cipher = AESCipher()
+        encrypted_password = cipher.encrypt(user_password)
+        now_date_time = cls._get_datetime_now()
+
+        try:
+            detail = AccountDetail.objects.get(group=group, user_id=user_id)
+        except ObjectDoesNotExist:
+            detail = None
+
+        if detail is None:
+
+            new_detail = AccountDetail.objects.create(
+                group=group,
+                user_id=user_id,
+                user_password=encrypted_password,
+                memo=f'[뭐더라 Pass] 자동 생성({now_date_time})'
+            )
+            Account.objects.create(
+                own_group=group,
+                detail=new_detail
+            )
+            return True
+        else:
+            detail.user_password = encrypted_password
+            detail.save()
+            return False
+
+    @classmethod
+    def _get_datetime_now(cls) -> str:
+        now = datetime.datetime.now()
+        now_date_time = now.strftime('%Y-%m-%d %H:%M:%S')
+        return now_date_time
+
+

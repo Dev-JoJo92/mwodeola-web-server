@@ -34,5 +34,7 @@ urlpatterns = [
     path('account/search/detail', views.AccountSearchDetailView.as_view()),
 
     # GET: account/for_autofill_service?app_package_name=
+    # POST: create new account for autofill-service.
+    #       but, already exists based on app_package_name, it updates the existing data.
     path('account/for_autofill_service', views.AccountForAutofillServiceView.as_view()),
 ]

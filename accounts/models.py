@@ -49,12 +49,16 @@ class AccountGroup(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
+                fields=['mwodeola_user', 'app_package_name'],
+                name='Unique app package name to user'
+            ),
+            models.UniqueConstraint(
                 fields=['mwodeola_user', 'group_name'],
-                name='Unique group name for user'
+                name='Unique group name to user'
             ),
             models.UniqueConstraint(
                 fields=['mwodeola_user', 'sns'],
-                name='Unique sns_group name for user'
+                name='Unique sns_group name to user'
             )
         ]
 

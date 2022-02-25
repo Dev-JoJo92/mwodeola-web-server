@@ -149,5 +149,10 @@ class AccountForAutofillServiceView(BaseAPIView):
     def get(self, request):
         app_package_name = request.GET.get('app_package_name', None)
         data = {'app_package_name': app_package_name}
-        self.serializer = serializers.AccountForAutofillServiceSerializer(user=request.user, data=data)
+        self.serializer = serializers.GET_AccountForAutofillServiceSerializer(user=request.user, data=data)
         return super().get(request)
+
+    def post(self, request):
+        self.serializer = serializers.POST_AccountForAutofillServiceSerializer(user=request.user, data=request.data)
+        return super().post(request)
+
