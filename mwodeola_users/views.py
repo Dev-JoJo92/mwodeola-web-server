@@ -1,15 +1,18 @@
+from django.conf import settings
 from django.http import HttpResponse, JsonResponse
-from rest_framework import status
+from rest_framework import status, HTTP_HEADER_ENCODING
 from rest_framework.views import APIView
 from rest_framework.settings import api_settings
 from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.settings import api_settings as simplejwt_api_settings
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 from _mwodeola.utils import get_random_secret_key_str
 from mwodeola_users.models import MwodeolaUser
 from .auth import get_raw_token, get_user_from_request_token
 from .auth.authentications import JWTAuthenticationForRefresh
-from .serializers_token import TokenRefreshSerializer
+from .serializers_token import TokenRefreshSerializer, TokenBlacklistSerializer
 from .serializers import (
     SignUpVerifyPhoneSerializer,
     SignUpVerifyEmailSerializer,
@@ -23,6 +26,14 @@ from .serializers import (
     PasswordChangeSerializer,
     UserWakeUpSerializer,
 )
+
+AUTH_HEADER_TYPE_BYTES = set(
+    h.encode(HTTP_HEADER_ENCODING)
+    for h in AUTH_HEADER_TYPES
+)
+
+AUTH_LIMIT_DEFAULT = 5
+AUTH_LIMIT = getattr(settings, "AUTH_LIMIT", AUTH_LIMIT_DEFAULT)
 
 
 # Create your views here.
@@ -66,6 +77,36 @@ class BaseSignView(APIView):
             return JsonResponse(serializer.results, status=status.HTTP_200_OK)
         else:
             return JsonResponse(serializer.err_messages, status=serializer.err_status)
+
+    @classmethod
+    def get_header(cls, request):
+        header = request.META.get(simplejwt_api_settings.AUTH_HEADER_NAME)
+
+        if isinstance(header, str):
+            # Work around django test client oddness
+            header = header.encode(HTTP_HEADER_ENCODING)
+
+        return header
+
+    @classmethod
+    def get_raw_token(cls, header):
+        parts = header.split()
+
+        if len(parts) == 0:
+            # Empty AUTHORIZATION header sent
+            return None
+
+        if parts[0] not in AUTH_HEADER_TYPE_BYTES:
+            # Assume the header does not contain a JSON web token
+            return None
+
+        if len(parts) != 2:
+            raise AuthenticationFailed(
+                'Authorization header must contain two space-delimited values',
+                code='bad_authorization_header',
+            )
+
+        return parts[1]
 
 
 class SignUpVerifyPhoneView(BaseSignView):
@@ -135,6 +176,39 @@ class WithdrawalView(BaseSignView):
         return super().delete(request)
 
 
+class AuthFailedCountView(BaseSignView):
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    authentication_classes = [JWTAuthenticationForRefresh]
+
+    def get(self, request):
+        result = {
+            'auth_failed_count': request.user.count_auth_failed,
+            'limit': AUTH_LIMIT
+        }
+        return JsonResponse(result, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        auth_failed_count = request.data.get('auth_failed_count', None)
+        if auth_failed_count is None:
+            return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.count_auth_failed = auth_failed_count
+
+        if auth_failed_count >= AUTH_LIMIT:
+            request.user.is_locked = True
+            request.user.save()
+
+            header = self.get_header(request)
+            raw_token = self.get_raw_token(header).decode()
+            data = {'refresh': raw_token}
+            serializer = TokenBlacklistSerializer(data=data)
+            serializer.is_valid()
+            return HttpResponse(status=status.HTTP_200_OK)
+
+        request.user.save()
+        return HttpResponse(status=status.HTTP_200_OK)
+
+
 class TokenRefreshView(BaseSignView):
     permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
     authentication_classes = [JWTAuthenticationForRefresh]
@@ -170,6 +244,23 @@ class PasswordChangeForLostUser(BaseSignView):
 
     def put(self, request):
         return super().put(request)
+
+
+class UserLockView(BaseSignView):
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    authentication_classes = [JWTAuthenticationForRefresh]
+
+    def post(self, request):
+        header = self.get_header(request)
+        raw_token = self.get_raw_token(header).decode()
+        data = {'refresh': raw_token}
+        serializer = TokenBlacklistSerializer(data=data)
+        if serializer.is_valid():
+            request.user.is_locked = True
+            request.user.save()
+            return HttpResponse(status=status.HTTP_200_OK)
+        else:
+            return JsonResponse(serializer.data, status=status.HTTP_400_BAD_REQUEST)
 
 
 # TODO: 인증 프로세스 추가 예정(휴대폰, 이메일 인증)

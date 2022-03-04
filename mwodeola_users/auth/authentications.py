@@ -35,6 +35,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
             return None
 
         raw_token = self.get_raw_token(header)
+
         if raw_token is None:
             return None
 

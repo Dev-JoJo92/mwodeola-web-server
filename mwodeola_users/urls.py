@@ -11,6 +11,9 @@ urlpatterns = [
     path('users/sign_out', views.SignOutView.as_view()),
     path('users/withdrawal', views.WithdrawalView.as_view()),
 
+    # GET, PUT
+    path('users/auth_failed_count', views.AuthFailedCountView.as_view()),
+
     # Refresh Token
     path('users/token/refresh', views.TokenRefreshView.as_view()),
     # Password Authentication
@@ -20,6 +23,8 @@ urlpatterns = [
     # Password Change for lost user
     # path('users/password/change_for_loss', views.PasswordChangeForLostUser.as_view()),
 
+    # 계정 잠금(POST)
+    path('users/lock', views.UserLockView.as_view()),
     # 계정 휴면 해제
     # path('users/wake_up', views.UserWakeUpView.as_view()),
     # 계정 잠금 해제
