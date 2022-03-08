@@ -50,6 +50,8 @@ class UserAuthMixin:
                 self._blacklist_all(user)
                 self.err_messages['message'] = 'Exceeded number of authentications'
                 self.err_messages['code'] = 'authentication_exceed'
+                self.err_messages['count'] = user.count_auth_failed
+                self.err_messages['limit'] = AUTH_LIMIT
                 self.err_status = status.HTTP_403_FORBIDDEN
             return None
 
@@ -91,6 +93,8 @@ class UserAuthMixin:
                 self._blacklist_all(user)
                 self.err_messages['message'] = 'Exceeded number of authentications'
                 self.err_messages['code'] = 'authentication_exceed'
+                self.err_messages['count'] = user.count_auth_failed
+                self.err_messages['limit'] = AUTH_LIMIT
                 self.err_status = status.HTTP_403_FORBIDDEN
             return None
 
@@ -130,6 +134,8 @@ class UserAuthMixin:
                 self._blacklist_all(user)
                 self.err_messages['message'] = 'Exceeded number of authentications'
                 self.err_messages['code'] = 'authentication_exceed'
+                self.err_messages['count'] = user.count_auth_failed
+                self.err_messages['limit'] = AUTH_LIMIT
                 self.err_status = status.HTTP_403_FORBIDDEN
             return None
 
