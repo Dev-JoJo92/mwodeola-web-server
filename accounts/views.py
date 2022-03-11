@@ -144,6 +144,13 @@ class AccountSearchDetailView(BaseAPIView):
         return super().get(request)
 
 
+class AccountUserIdsView(BaseAPIView):
+
+    def get(self, request):
+        self.serializer = serializers.AccountUserIdsSerializer(user=request.user)
+        return super().get(request)
+
+
 class AccountForAutofillServiceView(BaseAPIView):
 
     def get(self, request):
@@ -155,4 +162,7 @@ class AccountForAutofillServiceView(BaseAPIView):
     def post(self, request):
         self.serializer = serializers.POST_AccountForAutofillServiceSerializer(user=request.user, data=request.data)
         return super().post(request)
+
+
+
 

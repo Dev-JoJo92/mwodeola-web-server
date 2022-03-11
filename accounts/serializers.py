@@ -536,6 +536,24 @@ class AccountSearchDetailSerializer(BaseSerializer):
         return True
 
 
+class AccountUserIdsSerializer(BaseSerializer):
+
+    def is_valid(self, raise_exception=False):
+
+        groups = AccountGroup.objects.filter(mwodeola_user=self.user.id)
+        group_ids = []
+        for group in groups:
+            group_ids.append(group.id)
+
+        details = AccountDetail.objects.filter(group__in=group_ids)
+        id_set = set()
+        for detail in details:
+            id_set.add(detail.user_id)
+
+        self.results = list(id_set)
+        return True
+
+
 class GET_AccountForAutofillServiceSerializer(BaseSerializer):
     app_package_name = serializers.CharField(max_length=100)
 
