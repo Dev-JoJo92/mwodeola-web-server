@@ -89,9 +89,24 @@ class AccountGroup_DELETE_Serializer(BaseSerializer):
         return True
 
     def delete(self):
+        is_deleted_sns_group = False
+
         groups = self.validated_data['account_group_ids']
         for group in groups:
+            if group.sns is not None:
+                is_deleted_sns_group = True
+
             group.delete()
+
+        # sns group 이 삭제된 경우,
+        # 이와 연결된 그룹들 중 account 갯수가 0이 된 그룹을 찾아 제거함
+        if is_deleted_sns_group:
+            all_groups = AccountGroup.objects.filter(mwodeola_user=self.user.id)
+
+            for group in all_groups:
+                account_count = Account.objects.filter(own_group=group.id).count()
+                if account_count == 0:
+                    group.delete()
 
 
 class AccountGroupFavorite_PUT_Serializer(BaseSerializer):
