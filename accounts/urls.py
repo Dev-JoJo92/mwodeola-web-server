@@ -8,6 +8,9 @@ urlpatterns = [
     # DELETE: delete group
     path('account/group', views.AccountGroupView.as_view()),
 
+    # GET: sns all group
+    path('account/group/sns', views.AccountGroupSnsView.as_view()),
+
     # PUT: update favorite
     path('account/group/favorite', views.AccountGroupFavoriteView.as_view()),
 

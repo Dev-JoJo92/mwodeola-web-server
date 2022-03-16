@@ -22,9 +22,11 @@ def get_raw_token(request):
     Extracts an unvalidated JSON web token from the given "Authorization"
     header value.
     """
-    auth_header = request.META.get(api_settings.AUTH_HEADER_NAME, None).encode()
+    auth_header = request.META.get(api_settings.AUTH_HEADER_NAME, None)
     if auth_header is None:
         return None
+
+    auth_header = auth_header.encode()
 
     parts = auth_header.split()
     if len(parts) == 0:

@@ -109,6 +109,20 @@ class AccountGroup_DELETE_Serializer(BaseSerializer):
                     group.delete()
 
 
+class AccountGroupSnsSerializer(BaseSerializer):
+
+    def is_valid(self, raise_exception=False):
+        q = Q(mwodeola_user=self.user.id)
+        q.add(~Q(sns=None), q.AND)
+
+        sns_groups = AccountGroup.objects.filter(q)
+
+        serializer = AccountGroupSerializerForRead(sns_groups, many=True)
+
+        self.results = serializer.data
+        return True
+
+
 class AccountGroupFavorite_PUT_Serializer(BaseSerializer):
     account_group_id = serializers.PrimaryKeyRelatedField(queryset=AccountGroup.objects.all())
     is_favorite = serializers.BooleanField()
@@ -145,9 +159,9 @@ class AccountGroupDetail_GET_Serializer(BaseSerializer):
             raise exceptions.NotOwnerDataException()
 
         # SNS 그룹에 연결된 detail 의 요청은 views 를 올리지 않음.
-        if account.sns_group is None:
-            account.detail.views += 1
-            account.detail.save()
+        # if account.sns_group is None:
+        #     account.detail.views += 1
+        #     account.detail.save()
 
         serializer = AccountSerializerForRead(account)
 
@@ -600,8 +614,8 @@ class GET_AccountForAutofillServiceSerializer(BaseSerializer):
 class POST_AccountForAutofillServiceSerializer(BaseSerializer):
     app_package_name = serializers.CharField(max_length=100, allow_null=False, allow_blank=False)
     group_name = serializers.CharField(max_length=30, allow_null=False, allow_blank=False)
-    user_id = serializers.CharField(max_length=100, allow_null=False, allow_blank=False)
-    user_password = serializers.CharField(max_length=255, allow_null=False, allow_blank=False)
+    user_id = serializers.CharField(max_length=100, allow_null=True, allow_blank=False, default=None)
+    user_password = serializers.CharField(max_length=255, allow_null=True, allow_blank=False, default=None)
 
     def is_valid(self, raise_exception=False):
         if not super().is_valid(raise_exception):

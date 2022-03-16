@@ -147,8 +147,9 @@ class AccountDetailSerializer(BaseModelSerializer):
 
     def create(self, validated_data):
         cipher = AESCipher()
-        validated_data['user_password'] = cipher.encrypt(validated_data['user_password'])
-        validated_data['user_password_pin'] = cipher.encrypt(validated_data.get('user_password_pin', None))
+        validated_data['user_password'] = cipher.encrypt(validated_data.get('user_password', None))
+        validated_data['user_password_pin4'] = cipher.encrypt(validated_data.get('user_password_pin4', None))
+        validated_data['user_password_pin6'] = cipher.encrypt(validated_data.get('user_password_pin6', None))
         validated_data['user_password_pattern'] = cipher.encrypt(validated_data.get('user_password_pattern', None))
 
         new_detail = super().create(validated_data)
@@ -160,8 +161,9 @@ class AccountDetailSerializer(BaseModelSerializer):
 
     def update(self, instance, validated_data):
         cipher = AESCipher()
-        validated_data['user_password'] = cipher.encrypt(validated_data['user_password'])
-        validated_data['user_password_pin'] = cipher.encrypt(validated_data.get('user_password_pin', None))
+        validated_data['user_password'] = cipher.encrypt(validated_data.get('user_password', None))
+        validated_data['user_password_pin4'] = cipher.encrypt(validated_data.get('user_password_pin4', None))
+        validated_data['user_password_pin6'] = cipher.encrypt(validated_data.get('user_password_pin6', None))
         validated_data['user_password_pattern'] = cipher.encrypt(validated_data.get('user_password_pattern', None))
         return super().update(instance, validated_data)
 
@@ -170,7 +172,8 @@ class AccountDetailSerializer(BaseModelSerializer):
         result = super().to_representation(instance)
         result['group'] = instance.group.id
         result['user_password'] = cipher.decrypt(instance.user_password)
-        result['user_password_pin'] = cipher.decrypt(instance.user_password_pin)
+        result['user_password_pin4'] = cipher.decrypt(instance.user_password_pin4)
+        result['user_password_pin6'] = cipher.decrypt(instance.user_password_pin6)
         result['user_password_pattern'] = cipher.decrypt(instance.user_password_pattern)
         return result
 
@@ -184,8 +187,11 @@ class AccountDetailSerializerForRead(BaseModelSerializer):
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         ret['user_password'] = AESCipher().decrypt(instance.user_password)
-        ret['user_password_pin'] = AESCipher().decrypt(instance.user_password_pin)
+        ret['user_password_pin4'] = AESCipher().decrypt(instance.user_password_pin4)
+        ret['user_password_pin6'] = AESCipher().decrypt(instance.user_password_pin6)
         ret['user_password_pattern'] = AESCipher().decrypt(instance.user_password_pattern)
+        instance.views += 1
+        instance.save()
         return ret
 
 

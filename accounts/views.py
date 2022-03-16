@@ -67,6 +67,13 @@ class AccountGroupView(BaseAPIView):
         return super().delete(request)
 
 
+class AccountGroupSnsView(BaseAPIView):
+
+    def get(self, request):
+        self.serializer = serializers.AccountGroupSnsSerializer(user=request.user)
+        return super().get(request)
+
+
 class AccountGroupFavoriteView(BaseAPIView):
 
     def put(self, request):

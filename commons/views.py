@@ -9,6 +9,7 @@ from .serializers import (
     SnsSerializer
 )
 
+
 # Create your views here.
 class BaseAPIView(APIView):
 
@@ -50,7 +51,10 @@ class BaseAPIView(APIView):
             return JsonResponse(serializer.err_messages, status=serializer.err_status)
 
 
-class SnsInfoView(BaseAPIView):
+class SnsInfoView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
     def get(self, request):
         sns_qs = SNS.objects.all()
         serializer = SnsSerializer(sns_qs, many=True)
