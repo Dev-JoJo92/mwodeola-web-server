@@ -3,7 +3,7 @@ from .models import SNS, AccountGroup, AccountDetail, Account
 
 
 class SNS_Admin(admin.ModelAdmin):
-    list_display = ('id', 'name')
+    list_display = ('id', 'name', 'app_package_name', 'web_url')
     ordering = ('id',)
 
 
