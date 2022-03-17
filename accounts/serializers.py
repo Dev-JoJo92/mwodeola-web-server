@@ -577,7 +577,8 @@ class AccountUserIdsSerializer(BaseSerializer):
         details = AccountDetail.objects.filter(group__in=group_ids)
         id_set = set()
         for detail in details:
-            id_set.add(detail.user_id)
+            if detail.user_id is not None:
+                id_set.add(detail.user_id)
 
         self.results = list(id_set)
         return True
