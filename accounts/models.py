@@ -80,6 +80,8 @@ class AccountDetail(models.Model):
     views = models.IntegerField(default=0)
 
     def __str__(self):
+        if self.user_id is None:
+            return ""
         return self.user_id
 
 
