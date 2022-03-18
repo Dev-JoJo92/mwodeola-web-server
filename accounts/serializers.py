@@ -452,6 +452,26 @@ class AccountGroupDetailAllSerializer(BaseSerializer):
         return True
 
 
+class AccountGroupDetailAllSimpleSerializer(BaseSerializer):
+    account_group_id = serializers.PrimaryKeyRelatedField(queryset=AccountGroup.objects.all())
+
+    def is_valid(self, raise_exception=False):
+        if not super().is_valid(raise_exception):
+            return False
+
+        account_group = self.validated_data['account_group_id']
+
+        if account_group.mwodeola_user.id != self.user.id:
+            raise exceptions.NotOwnerDataException()
+
+        accounts = Account.objects.filter(own_group=account_group)
+
+        serializer = AccountSerializerSimpleForRead(accounts, many=True)
+        self.results = serializer.data
+
+        return True
+
+
 class AccountDetail_POST_Serializer(AccountDetailSerializer):
     group = serializers.PrimaryKeyRelatedField(queryset=AccountGroup.objects.all(), write_only=True)
 

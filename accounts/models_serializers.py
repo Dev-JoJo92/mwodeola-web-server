@@ -223,9 +223,10 @@ class AccountSerializerSimpleForRead(BaseModelSerializer):
 
     class Meta:
         model = Account
-        fields = ['account_id', 'created_at', 'sns_group', 'detail']
+        fields = ['account_id', 'created_at', 'own_group', 'sns_group', 'detail']
 
     def to_representation(self, instance):
+        self.fields['own_group'] = AccountGroupSerializerForRead()
         self.fields['sns_group'] = AccountGroupSerializerForRead()
         self.fields['detail'] = AccountDetailSerializerSimple()
         return super().to_representation(instance)

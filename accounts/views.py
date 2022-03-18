@@ -122,6 +122,14 @@ class AccountGroupDetailAllView(BaseAPIView):
         return super().get(request)
 
 
+class AccountGroupDetailAllSimpleView(BaseAPIView):
+
+    def get(self, request):
+        data = {'account_group_id': request.GET.get('group_id', None)}
+        self.serializer = serializers.AccountGroupDetailAllSimpleSerializer(user=request.user, data=data)
+        return super().get(request)
+
+
 class AccountDetailView(BaseAPIView):
 
     def post(self, request):

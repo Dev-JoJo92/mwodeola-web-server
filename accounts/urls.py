@@ -22,6 +22,9 @@ urlpatterns = [
     # GET: all details in group
     path('account/group/detail/all', views.AccountGroupDetailAllView.as_view()),
 
+    # GET: all simple details in group
+    path('account/group/detail/all/simple', views.AccountGroupDetailAllSimpleView.as_view()),
+
     # POST: create new group and add sns_detail
     # PUT: add sns_detail in group
     # DELETE: disconnect sns_detail
