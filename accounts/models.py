@@ -73,7 +73,7 @@ class AccountDetail(models.Model):
     user_password_pin4 = models.CharField(max_length=128, null=True, blank=False, default=None)
     user_password_pin6 = models.CharField(max_length=128, null=True, blank=False, default=None)
     user_password_pattern = models.CharField(max_length=128, null=True, blank=False, default=None)
-    memo = models.TextField(default='')
+    memo = models.TextField(max_length=2000, null=True, blank=False, default=None)
 
     created_at = models.DateTimeField(auto_now_add=True)
     last_confirmed_at = models.DateTimeField(auto_now=True)
