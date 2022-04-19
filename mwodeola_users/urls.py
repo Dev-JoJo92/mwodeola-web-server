@@ -11,6 +11,9 @@ urlpatterns = [
     path('users/sign_out', views.SignOutView.as_view()),
     path('users/withdrawal', views.WithdrawalView.as_view()),
 
+    # GET
+    path('users/info', views.UserInfoView.as_view()),
+
     # GET, PUT
     path('users/auth_failed_count', views.AuthFailedCountView.as_view()),
 

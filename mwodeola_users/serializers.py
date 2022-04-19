@@ -214,6 +214,12 @@ class WithdrawalSerializer(UserAuthMixin, BaseSerializer):
         self.instance.delete()
 
 
+class UserInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MwodeolaUser
+        fields = ['user_name', 'phone_number', 'email', 'is_email_certification', 'created_at', 'updated_at']
+
+
 class PasswordAuthSerializer(UserAuthMixin, BaseSerializer):
     password = PasswordField()
 

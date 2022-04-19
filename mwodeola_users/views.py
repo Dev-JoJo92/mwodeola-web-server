@@ -22,6 +22,7 @@ from .serializers import (
     SignInAutoSerializer,
     SignOutSerializer,
     WithdrawalSerializer,
+    UserInfoSerializer,
     PasswordAuthSerializer,
     PasswordChangeSerializer,
     UserWakeUpSerializer,
@@ -174,6 +175,16 @@ class WithdrawalView(BaseSignView):
         user = get_user_from_request_token(request)
         self.serializer = WithdrawalSerializer(user, data=request.data)
         return super().delete(request)
+
+
+class UserInfoView(BaseSignView):
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    authentication_classes = [JWTAuthenticationForRefresh]
+
+    def get(self, request):
+        user = get_user_from_request_token(request)
+        serializer = UserInfoSerializer(user)
+        return JsonResponse(serializer.data, status=status.HTTP_200_OK)
 
 
 class AuthFailedCountView(BaseSignView):
